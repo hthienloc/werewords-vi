@@ -5,7 +5,7 @@ const KEYS = {
   WORD_PACKS: 'werewords_wordpacks',
   HISTORY: 'werewords_history',
   SETTINGS: 'werewords_settings',
-  INITIALIZED: 'werewords_initialized',
+  INITIALIZED: 'werewords_initialized_v3',
 }
 
 export function getWordPacks(): WordPack[] {
@@ -39,7 +39,7 @@ export function saveHistory(history: GameHistory[]): void {
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
-  selectedPackId: 'pack-food',
+  selectedPackIds: ['pack-food'],
   timerDuration: 180,
   filterDifficulty: 'all',
   selectedRoleIds: ['role-seer', 'role-werewolf', 'role-villager'],

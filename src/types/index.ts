@@ -37,14 +37,14 @@ export interface GameHistory {
 }
 
 export interface GameSettings {
-  selectedPackId: string
+  selectedPackIds: string[]
   timerDuration: number
   filterDifficulty: 'all' | 'easy' | 'medium' | 'hard'
   selectedRoleIds: string[]
 }
 
 export interface CurrentGame {
-  packId: string
+  packIds: string[]
   word: Word
   startTime: number
   timerDuration: number

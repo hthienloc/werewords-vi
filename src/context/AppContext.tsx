@@ -38,7 +38,7 @@ const initialState: AppState = {
   wordPacks: [],
   history: [],
   settings: {
-    selectedPackId: 'pack-food',
+    selectedPackIds: ['pack-food'],
     timerDuration: 180,
     filterDifficulty: 'all',
     selectedRoleIds: ['role-seer', 'role-werewolf', 'role-villager'],

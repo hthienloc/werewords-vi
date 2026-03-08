@@ -1,39 +1,82 @@
-let enabled = true
+let enabled = true;
 
-export function speak(text: string): void {
-  if (!enabled || typeof window === 'undefined') return
+function buildUtterance(text: string): SpeechSynthesisUtterance {
+	const utter = new SpeechSynthesisUtterance(text);
+	utter.lang = "vi-VN";
+	utter.rate = 1.0;
+	utter.pitch = 1.0;
 
-  const synth = window.speechSynthesis
-  synth.cancel() // Stop any current speech
+	const voices = window.speechSynthesis.getVoices();
+	const vi =
+		voices.find((v) => v.lang === "vi-VN" || v.lang === "vi_VN") ??
+		voices.find((v) => v.lang.startsWith("vi"));
+	if (vi) utter.voice = vi;
+	return utter;
+}
 
-  const utter = new SpeechSynthesisUtterance(text)
-  utter.lang = 'vi-VN'
-  utter.rate = 1.0
-  utter.pitch = 1.0
+function doSpeak(text: string): void {
+	const synth = window.speechSynthesis;
+	synth.cancel();
 
-  const voices = synth.getVoices()
-  
-  const findVoice = () => {
-    const availableVoices = synth.getVoices()
-    return availableVoices.find((v) => v.lang === 'vi-VN' || v.lang === 'vi_VN') || 
-           availableVoices.find((v) => v.lang.startsWith('vi'))
-  }
+	// Dynamic import to avoid circular deps — music module is optional
+	let duckFn: (() => void) | null = null;
+	let restoreFn: (() => void) | null = null;
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const m = require("@/lib/music");
+		duckFn = m.duckMusic;
+		restoreFn = m.restoreMusic;
+	} catch {}
 
-  const viVoice = findVoice()
-  if (viVoice) {
-    utter.voice = viVoice
-  }
+	const utter = buildUtterance(text);
+	if (duckFn) duckFn();
+	utter.onend = () => {
+		if (restoreFn) restoreFn();
+	};
+	utter.onerror = () => {
+		if (restoreFn) restoreFn();
+	};
 
-  // If voices aren't loaded yet (can happen on some browsers), 
-  // we try to speak anyway, the browser will use its default.
-  // We also set a listener for voices changed for future calls.
-  synth.speak(utter)
+	synth.speak(utter);
+}
+
+export function speak(text: string, onEnd?: () => void): void {
+	if (!enabled || typeof window === "undefined") {
+		if (onEnd) setTimeout(onEnd, 100); // Trigger callback if disabled or no window
+		return;
+	}
+
+	const synth = window.speechSynthesis;
+	const voices = synth.getVoices();
+
+	const wrapOnEnd = () => {
+		if (onEnd) onEnd();
+	};
+
+	if (voices.length > 0) {
+		const utter = buildUtterance(text);
+		utter.onend = wrapOnEnd;
+		utter.onerror = wrapOnEnd;
+		
+		synth.cancel();
+		synth.speak(utter);
+	} else {
+		const handler = () => {
+			synth.removeEventListener("voiceschanged", handler);
+			speak(text, onEnd);
+		};
+		synth.addEventListener("voiceschanged", handler);
+		setTimeout(() => {
+			synth.removeEventListener("voiceschanged", handler);
+			if (!synth.speaking) speak(text, onEnd);
+		}, 300);
+	}
 }
 
 export function setTTSEnabled(val: boolean): void {
-  enabled = val
+	enabled = val;
 }
 
 export function isTTSEnabled(): boolean {
-  return enabled
+	return enabled;
 }
