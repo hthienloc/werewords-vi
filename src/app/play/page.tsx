@@ -179,7 +179,7 @@ export default function PlayPage() {
   const isWarning = timeLeft <= 30 && timeLeft > 0
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${flash ? 'bg-red-900' : step === 'night' ? 'bg-gray-950' : 'bg-gray-950'}`}>
+    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${flash ? 'bg-red-900' : 'bg-gray-950'}`}>
       {/* TTS toggle */}
       <div className="absolute top-4 right-4 z-10">
         <button
