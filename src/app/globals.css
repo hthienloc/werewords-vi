@@ -25,3 +25,8 @@ html, body {
 body {
   font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
 }
+
+/* Hide Turbopack/Next.js Dev Indicator */
+nextjs-portal {
+  display: none !important;
+}

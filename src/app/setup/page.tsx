@@ -107,8 +107,9 @@ export default function SetupPage() {
 			return;
 		}
 
-		const randomWord =
-			availableWords[Math.floor(Math.random() * availableWords.length)];
+		const shuffled = [...availableWords].sort(() => 0.5 - Math.random());
+		const candidateWords = shuffled.slice(0, 2);
+		const initialWord = candidateWords[0];
 
 		dispatch({
 			type: "UPDATE_SETTINGS",
@@ -120,11 +121,15 @@ export default function SetupPage() {
 			},
 		});
 
+		initAudio();
+		speak("Bắt đầu ván chơi.");
+
 		dispatch({
 			type: "START_GAME",
 			payload: {
 				packIds: selectedPackIds,
-				word: randomWord,
+				word: initialWord,
+				candidateWords: candidateWords,
 				startTime: Date.now(),
 				timerDuration: timerVal,
 				roleIds: selectedRoleIds,

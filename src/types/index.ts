@@ -39,13 +39,20 @@ export interface GameHistory {
 export interface GameSettings {
   selectedPackIds: string[]
   timerDuration: number
+  initialNightDuration: number
+  mayorRoleDuration: number
+  mayorWordDuration: number
+  narrationDuration: number
+  findSeerDuration: number
+  findWerewolfDuration: number
   filterDifficulty: 'all' | 'easy' | 'medium' | 'hard'
   selectedRoleIds: string[]
 }
 
 export interface CurrentGame {
   packIds: string[]
-  word: Word
+  word: Word // The selected word
+  candidateWords?: Word[] // 2 words for Mayor to choose from
   startTime: number
   timerDuration: number
   roleIds: string[]

@@ -41,6 +41,12 @@ export function saveHistory(history: GameHistory[]): void {
 const DEFAULT_SETTINGS: GameSettings = {
   selectedPackIds: ['pack-food'],
   timerDuration: 180,
+  initialNightDuration: 5,
+  mayorRoleDuration: 5,
+  mayorWordDuration: 10,
+  narrationDuration: 8,
+  findSeerDuration: 15,
+  findWerewolfDuration: 60,
   filterDifficulty: 'all',
   selectedRoleIds: ['role-seer', 'role-werewolf', 'role-villager'],
 }

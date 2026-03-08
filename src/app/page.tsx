@@ -50,8 +50,20 @@ export default function HomePage() {
 				>
 					📖 Luật chơi
 				</Link>
-			</div>
 
+				<Link
+					href="/settings"
+					className="w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white text-lg font-semibold py-4 rounded-2xl text-center transition-colors border border-gray-700"
+				>
+					⚙️ Cài đặt
+				</Link>
+			</div>
+			
+			<footer className="mt-12 text-center">
+				<p className="text-gray-500 text-sm font-medium">
+					Tác giả: <Link href="https://github.com/hthienloc" target="_blank" rel="noopener noreferrer" className="text-purple-400 font-bold hover:underline">hthienloc</Link>
+				</p>
+			</footer>
 		</main>
 	);
 }

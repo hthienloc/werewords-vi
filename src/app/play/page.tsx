@@ -16,6 +16,15 @@ import {
 import { GameHistory, CurrentGame, GameRole } from "@/types";
 import { ALL_ROLES } from "@/lib/roles";
 
+// Sub-components
+import FourWayReveal from "./components/FourWayReveal";
+import MayorRolePhase from "./components/MayorRolePhase";
+import MayorWordPhase from "./components/MayorWordPhase";
+import NarrationPhase from "./components/NarrationPhase";
+import TimerPhase from "./components/TimerPhase";
+import ResultPhase from "./components/ResultPhase";
+import EndgamePhase from "./components/EndgamePhase";
+
 // Roles that need to see the secret word during narration
 const WORD_ROLES = new Set([
 	"role-seer",
@@ -54,94 +63,20 @@ type Step =
 	| "night-end"
 	| "dawn"
 	| "timer"
+	| "find-seer"      // New: Word guessed, Werewolves find Seer
+	| "find-werewolf"  // New: Time up, Villagers find Werewolf
 	| "result";
-
-function FourWayReveal({
-	text,
-	progress,
-	roleName,
-}: {
-	text: string;
-	progress?: number;
-	roleName?: string;
-}) {
-	return (
-		<div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
-			{/* Word at Top edge */}
-			<div className="absolute top-10 left-1/2 -translate-x-1/2 rotate-180">
-				<p className="text-4xl font-black text-white bg-gray-900/90 px-6 py-2 rounded-xl shadow-2xl border border-gray-800 whitespace-nowrap">
-					{text}
-				</p>
-			</div>
-
-			{/* Word at Bottom edge */}
-			<div className="absolute bottom-20 left-1/2 -translate-x-1/2">
-				<p className="text-4xl font-black text-white bg-gray-900/90 px-6 py-2 rounded-xl shadow-2xl border border-gray-800 whitespace-nowrap">
-					{text}
-				</p>
-			</div>
-
-			{/* Word at Left edge */}
-			<div className="absolute left-2 top-1/2 -translate-y-1/2 rotate-90 origin-center">
-				<p className="text-3xl font-black text-white bg-gray-900/95 px-5 py-2 rounded-xl shadow-2xl border border-gray-800 whitespace-nowrap">
-					{text}
-				</p>
-			</div>
-
-			{/* Word at Right edge */}
-			<div className="absolute right-2 top-1/2 -translate-y-1/2 -rotate-90 origin-center">
-				<p className="text-3xl font-black text-white bg-gray-900/95 px-5 py-2 rounded-xl shadow-2xl border border-gray-800 whitespace-nowrap">
-					{text}
-				</p>
-			</div>
-
-			{/* Center indicator - always centered in viewport */}
-			<div className="relative w-32 h-32 flex items-center justify-center bg-gray-950/80 rounded-full backdrop-blur-lg border border-purple-500/30 shadow-2xl">
-				{progress !== undefined && (
-					<svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-						<circle
-							cx="50"
-							cy="50"
-							r="45"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="4"
-							className="text-gray-800"
-						/>
-						<circle
-							cx="50"
-							cy="50"
-							r="45"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="8"
-							strokeDasharray="282.74"
-							strokeDashoffset={282.74 * (1 - progress / 100)}
-							strokeLinecap="round"
-							className="text-purple-500 transition-all duration-75"
-						/>
-					</svg>
-				)}
-				<div className="z-10 text-center flex flex-col items-center">
-					<span className="text-purple-400 text-[9px] font-bold uppercase tracking-widest opacity-80 mb-1">
-						Vai trò
-					</span>
-					<span className="text-white font-black text-xl whitespace-nowrap drop-shadow-lg">
-						{roleName}
-					</span>
-				</div>
-			</div>
-		</div>
-	);
-}
 
 export default function PlayPage() {
 	const { state, dispatch } = useApp();
 	const router = useRouter();
 
-	const [step, setStep] = useState<Step>("start-night");
+	const [step, setStep] = useState<Step>("night");
 	const [wordVisible, setWordVisible] = useState(false);
 	const [timeLeft, setTimeLeft] = useState(0);
+	const [endgameTimeLeft, setEndgameTimeLeft] = useState(0);
+	const [endgameNarrating, setEndgameNarrating] = useState(false);
+	const lastSpokenRef = useRef<number>(-1);
 	const halfTimeReportedRef = useRef(false);
 	const oneMinuteReportedRef = useRef(false);
 	const [paused, setPaused] = useState(false);
@@ -154,6 +89,7 @@ export default function PlayPage() {
 	);
 
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	const endgameIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 	const warningFiredRef = useRef(false);
 	const endFiredRef = useRef(false);
@@ -170,12 +106,6 @@ export default function PlayPage() {
 		}
 	}, [state.hydrated, currentGame, router]);
 
-	// Interaction required to unlock audio API
-	function handleStartNight() {
-		initAudio();
-		speak("Bắt đầu ván chơi.");
-		setStep("night");
-	}
 
 	useEffect(() => {
 		if (step === "night") {
@@ -183,7 +113,7 @@ export default function PlayPage() {
 			speak("Đêm xuống. Tất cả mọi người nhắm mắt lại.", () => {
 				setTimeout(() => {
 					setStep("mayor-role");
-				}, 1000);
+				}, state.settings.initialNightDuration * 1000);
 			});
 		}
 	}, [step]);
@@ -191,10 +121,10 @@ export default function PlayPage() {
 	// Step 1.5: Thị trưởng role - auto pick or delay
 	useEffect(() => {
 		if (step === "mayor-role") {
-			speak("Thị trưởng mở mắt, hãy chọn vai trò bí mật của bạn.", () => {
+			speak("Thị trưởng mở mắt, hãy xem vai trò bí mật của bạn.", () => {
 				setSelectionProgress(100);
 				const start = Date.now();
-				const duration = 10000;
+				const duration = state.settings.mayorRoleDuration * 1000;
 				const interval = setInterval(() => {
 					const elapsed = Date.now() - start;
 					const remaining = Math.max(
@@ -210,22 +140,22 @@ export default function PlayPage() {
 				return () => clearInterval(interval);
 			});
 		}
-	}, [step]);
+	}, [step, state.settings.mayorRoleDuration]);
 
 
 	useEffect(() => {
 		if (step === "mayor-word") {
-			speak("Thị trưởng hãy mở mắt và xem từ bí mật.", () => {
-				setWordVisible(true);
-				setRevealProgress(100);
+			if (!currentGame) return;
+			setWordVisible(true);
+			setRevealProgress(100);
+
+			speak("Thị trưởng hãy mở mắt và chọn một trong hai từ để bắt đầu.", () => {
 				const start = Date.now();
-				const duration = 8000;
+				const duration = state.settings.mayorWordDuration * 1000;
+
 				const interval = setInterval(() => {
 					const elapsed = Date.now() - start;
-					const remaining = Math.max(
-						0,
-						100 - (elapsed / duration) * 100
-					);
+					const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
 					setRevealProgress(remaining);
 					if (elapsed >= duration) {
 						clearInterval(interval);
@@ -238,7 +168,7 @@ export default function PlayPage() {
 				return () => clearInterval(interval);
 			});
 		}
-	}, [step]);
+	}, [step, state.settings.mayorWordDuration]);
 
 	// Step 3: Role Narration Sequence
 	useEffect(() => {
@@ -265,13 +195,16 @@ export default function PlayPage() {
 			}
 
 			speak(text, () => {
-				// Start countdown for the role's action time (8s)
+				// Start countdown for the role's action time
 				setSelectionProgress(100);
 				const startSnapshot = Date.now();
-				const duration = 8000;
+				const duration = state.settings.narrationDuration * 1000;
 				const interval = setInterval(() => {
 					const elapsed = Date.now() - startSnapshot;
-					const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+					const remaining = Math.max(
+						0,
+						100 - (elapsed / duration) * 100
+					);
 					setSelectionProgress(remaining);
 					
 					if (elapsed >= duration) {
@@ -311,11 +244,9 @@ export default function PlayPage() {
 	useEffect(() => {
 		if (step === "dawn") {
 			import("@/lib/audio").then((m) => m.playWakeChime());
-			speak("Mọi người mở mắt. Bình minh.", () => {
-				setTimeout(() => {
-					setStep("timer");
-					setTimeLeft(currentGame?.timerDuration ?? 180);
-				}, 1500);
+			speak("Mọi người hãy mở mắt. Bình minh đã tới, hãy bắt đầu đặt câu hỏi cho Thị trưởng.", () => {
+				setStep("timer");
+				setTimeLeft(currentGame?.timerDuration ?? 180);
 			});
 		}
 	}, [step, currentGame]);
@@ -399,7 +330,14 @@ export default function PlayPage() {
 					playEndBeep();
 					clearInterval(intervalRef.current!);
 					intervalRef.current = null;
-					setTimeout(() => setStep("result"), 1200);
+					
+					// Transition to "Find Werewolf" phase
+					setEndgameNarrating(true);
+					speak("Hết giờ! Dân làng hãy thảo luận để tìm ra Ma sói.", () => {
+						setEndgameNarrating(false);
+					});
+					setEndgameTimeLeft(state.settings.findWerewolfDuration);
+					setStep("find-werewolf");
 					return 0;
 				}
 
@@ -412,11 +350,78 @@ export default function PlayPage() {
 		};
 	}, [step, paused, currentGame]);
 
+	// Endgame Timer Logic
+	useEffect(() => {
+		if ((step !== "find-seer" && step !== "find-werewolf") || endgameNarrating) {
+			lastSpokenRef.current = -1;
+			return;
+		}
+
+		endgameIntervalRef.current = setInterval(() => {
+			setEndgameTimeLeft((prev) => {
+				const next = Math.max(0, prev - 1);
+				
+				// Side effects should happen outside or be guarded
+				if (next <= 5 && next > 0 && next !== lastSpokenRef.current) {
+					lastSpokenRef.current = next;
+					playWarningBeep();
+					speak(next.toString());
+				}
+				
+				if (next === 0 && lastSpokenRef.current !== 0) {
+					lastSpokenRef.current = 0;
+					playEndBeep();
+					speak("Hết giờ!");
+					// We don't call setStep here immediately to avoid double triggers in dev
+				}
+				return next;
+			});
+		}, 1000);
+
+		return () => {
+			if (endgameIntervalRef.current) clearInterval(endgameIntervalRef.current);
+		};
+	}, [step, endgameNarrating]);
+
+	// Auto-navigate when endgame timer hits zero
+	useEffect(() => {
+		if ((step === "find-seer" || step === "find-werewolf") && endgameTimeLeft === 0 && !endgameNarrating && lastSpokenRef.current === 0) {
+			const timeout = setTimeout(() => setStep("result"), 1000);
+			return () => clearTimeout(timeout);
+		}
+	}, [endgameTimeLeft, step, endgameNarrating]);
+
 	// TTS sync
 	function toggleTTS() {
 		const next = !ttsOn;
 		setTtsOn(next);
 		setTTSEnabled(next);
+	}
+
+	function handleWordGuessed() {
+		if (step !== "timer") return;
+		if (intervalRef.current) {
+			clearInterval(intervalRef.current);
+			intervalRef.current = null;
+		}
+		
+		setEndgameNarrating(true);
+		speak("Đoán trúng từ! Ma sói hãy tìm ra Tiên tri.", () => {
+			setEndgameNarrating(false);
+		});
+		setEndgameTimeLeft(state.settings.findSeerDuration);
+		setStep("find-seer");
+	}
+
+	function handleSelectWord(word: any) {
+		if (!currentGame) return;
+		dispatch({
+			type: "START_GAME",
+			payload: {
+				...currentGame,
+				word: word,
+			},
+		});
 	}
 
 	function handleRevealWord() {
@@ -500,26 +505,6 @@ export default function PlayPage() {
 				</button>
 			</div>
 
-			{/* ── STEP 0: Manual Start to unlock audio ── */}
-			{step === "start-night" && (
-				<div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-8">
-					<div className="text-8xl animate-bounce">🌙</div>
-					<div>
-						<h2 className="text-3xl font-extrabold text-white mb-3">
-							Sẵn sàng?
-						</h2>
-						<p className="text-gray-400 text-lg">
-							Nhấn nút bên dưới để bắt đầu ván chơi.
-						</p>
-					</div>
-					<button
-						onClick={handleStartNight}
-						className="bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white font-bold text-xl px-12 py-5 rounded-2xl shadow-lg shadow-purple-900/40 transition-all transform active:scale-95"
-					>
-						🔥 Bắt đầu Ngay
-					</button>
-				</div>
-			)}
 
 			{/* ── STEP 1: Night ── */}
 			{step === "night" && (
@@ -540,197 +525,36 @@ export default function PlayPage() {
 
 			{/* ── STEP 1.5: Thị trưởng Secret Role ── */}
 			{step === "mayor-role" && (
-				<div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-8">
-					<div className="relative w-36 h-36 flex items-center justify-center">
-						<svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-							<circle
-								cx="50"
-								cy="50"
-								r="45"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="4"
-								className="text-gray-800"
-							/>
-							<circle
-								cx="50"
-								cy="50"
-								r="45"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="6"
-								strokeDasharray="282.74"
-								strokeDashoffset={282.74 * (1 - selectionProgress / 100)}
-								strokeLinecap="round"
-								className="text-purple-500 transition-all duration-75"
-							/>
-						</svg>
-						<div className="text-7xl z-10 drop-shadow-2xl">🎭</div>
-					</div>
-					<div>
-						<h2 className="text-2xl font-bold text-white mb-2">
-							Thị trưởng
-						</h2>
-						<p className="text-gray-300 text-lg">
-							Hãy chọn vai trò bí mật của bạn (lá bài ở giữa).
-						</p>
-					</div>
-								"role-fortune-teller",
-								"role-apprentice",
-								"role-minion",
-							].includes(r.id)
-						).map((role) => (
-							<div
-								key={role.id}
-								className="bg-gray-800 border border-gray-700 rounded-xl py-4 px-3 flex flex-col items-center gap-1"
-							>
-								<span className="text-2xl">{role.emoji}</span>
-								<span className="text-sm font-bold text-white">
-									{role.name}
-								</span>
-							</div>
-						))}
-					</div>
-				</div>
+				<MayorRolePhase selectionProgress={selectionProgress} />
 			)}
 
 
 			{/* ── STEP 2: Thị trưởng sees word ── */}
 			{step === "mayor-word" && (
-				<div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
-					{!wordVisible && (
-						<div className="flex flex-col items-center gap-6">
-							<div>
-								<h2 className="text-2xl font-bold text-white mb-2">
-									Thị trưởng
-								</h2>
-								<p className="text-gray-300 text-lg">
-									Hãy mở mắt và xem từ bí mật.
-								</p>
-							</div>
-						</div>
-					)}
-
-					{wordVisible && (
-						<FourWayReveal
-							text={currentGame.word.text}
-							progress={revealProgress}
-							roleName="Thị trưởng"
-						/>
-					)}
-				</div>
+				<MayorWordPhase
+					candidateWords={currentGame.candidateWords}
+					selectedWord={currentGame.word}
+					revealProgress={revealProgress}
+					onSelectWord={handleSelectWord}
+				/>
 			)}
 
 			{/* ── STEP 3: Narration ── */}
 			{step === "narration" && (
-				<div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-6">
-					{(!currentNarrationRole || !WORD_ROLES.has(currentNarrationRole.id) || narrationPhase === "sleeping") && (
-						<div className="text-7xl animate-pulse">🌙</div>
-					)}
-
-					{/* Thị trưởng sleeping */}
-					{narrationIndex === -1 && (
-						<div>
-							<h2 className="text-3xl font-extrabold text-white mb-3">
-								Giai đoạn ban đêm
-							</h2>
-							<p className="text-gray-300 text-xl">
-								Thị trưởng đang đi ngủ...
-							</p>
-						</div>
-					)}
-
-					{/* Role is awake — show info + confirm button */}
-					{currentNarrationRole && narrationPhase === "waking" && (
-						<div className="w-full max-w-sm flex flex-col items-center gap-5">
-							{!WORD_ROLES.has(currentNarrationRole.id) && (
-								<div className="flex flex-col items-center gap-6">
-									<div className="relative w-36 h-36 flex items-center justify-center">
-										<svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-											<circle
-												cx="50"
-												cy="50"
-												r="45"
-												fill="none"
-												stroke="currentColor"
-												strokeWidth="4"
-												className="text-gray-800"
-											/>
-											<circle
-												cx="50"
-												cy="50"
-												r="45"
-												fill="none"
-												stroke="currentColor"
-												strokeWidth="6"
-												strokeDasharray="282.74"
-												strokeDashoffset={282.74 * (1 - selectionProgress / 100)}
-												strokeLinecap="round"
-												className="text-purple-500 transition-all duration-75"
-											/>
-										</svg>
-										<span className="text-7xl z-10 drop-shadow-2xl">
-											{currentNarrationRole.emoji}
-										</span>
-									</div>
-									<div className="text-center">
-										<p className="text-purple-400 text-3xl font-black uppercase tracking-widest">
-											{currentNarrationRole.name}
-										</p>
-										<p className="text-gray-500 text-lg mt-2 italic font-medium">
-											Người khác, ĐỪNG mở mắt!
-										</p>
-									</div>
-								</div>
-							)}
-
-							{/* Word/letters for roles that need them */}
-							{WORD_ROLES.has(currentNarrationRole.id) && (
-								<FourWayReveal
-									text={
-										currentNarrationRole.id ===
-										"role-fortune-teller"
-											? currentGame.word.text
-													.split(" ")
-													.map((w) =>
-														w[0].toUpperCase()
-													)
-													.join(" · ")
-											: currentGame.word.text
-									}
-									progress={selectionProgress}
-									roleName={currentNarrationRole.name}
-								/>
-							)}
-
-							{/* Action-only roles */}
-							{!WORD_ROLES.has(currentNarrationRole.id) && (
-								<p className="text-gray-300 text-lg">
-									Đang chờ hành động...
-								</p>
-							)}
-						</div>
-					)}
-
-					{/* Role sleeping */}
-					{currentNarrationRole && narrationPhase === "sleeping" && (
-						<div>
-							<span className="text-5xl block mb-3">
-								{currentNarrationRole.emoji}
-							</span>
-							<p className="text-gray-300 text-xl">
-								{currentNarrationRole.name} đang đi ngủ...
-							</p>
-						</div>
-					)}
-
-					{narrationIndex >= activeRoles.length &&
-						narrationIndex >= 0 && (
-							<p className="text-gray-300 text-xl">
-								Đang chuẩn bị bình minh...
-							</p>
-						)}
-				</div>
+				<NarrationPhase
+					currentRole={currentNarrationRole}
+					narrationPhase={narrationPhase}
+					narrationIndex={narrationIndex}
+					selectionProgress={selectionProgress}
+					activeRolesLength={activeRoles.length}
+					wordText={
+						currentNarrationRole?.id === "role-fortune-teller"
+							? currentGame.word.text
+									.split(" ")
+									.map((w) => w[0].toUpperCase())
+							: currentGame.word.text
+					}
+				/>
 			)}
 
 			{/* ── STEP 4: Dawn ── */}
@@ -755,91 +579,30 @@ export default function PlayPage() {
 
 			{/* ── STEP 5: Timer ── */}
 			{step === "timer" && (
-				<div
-					className={`flex-1 flex flex-col items-center justify-center px-6 text-center gap-8 transition-colors duration-300 ${isWarning ? "bg-red-950" : ""}`}
-				>
-					<TimerDisplay seconds={timeLeft} warning={isWarning} />
-
-					{isWarning && (
-						<p className="text-red-400 font-bold text-lg animate-pulse">
-							⚠️ Còn 30 giây!
-						</p>
-					)}
-
-					<div className="flex gap-4 mt-4">
-						<button
-							onClick={() => setPaused((p) => !p)}
-							className="bg-gray-800 hover:bg-gray-700 text-white font-semibold text-lg px-8 py-4 rounded-2xl border border-gray-700 transition-colors"
-						>
-							{paused ? "▶ Tiếp tục" : "⏸ Dừng"}
-						</button>
-					</div>
-
-					<div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-sm text-gray-400">
-						Từ bí mật đã được Thị trưởng xem
-					</div>
-				</div>
+				<TimerPhase
+					timeLeft={timeLeft}
+					isWarning={isWarning}
+					paused={paused}
+					onTogglePause={() => setPaused((p) => !p)}
+					onWordGuessed={handleWordGuessed}
+				/>
 			)}
 
-			{/* ── STEP 6: Time's up / Result ── */}
-			{step === "result" && result === null && (
-				<div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-6">
-					<div className="text-7xl">⏰</div>
-					<h2 className="text-3xl font-extrabold text-white">
-						Hết giờ!
-					</h2>
-					<p className="text-gray-300 text-lg">Ai thắng ván này?</p>
-
-					<div className="w-full max-w-sm flex flex-col gap-4 mt-4">
-						<button
-							onClick={() => handleSaveResult("villagers")}
-							className="w-full bg-green-700 hover:bg-green-600 text-white font-bold text-xl py-5 rounded-2xl transition-colors"
-						>
-							🎉 Dân làng đoán đúng
-						</button>
-						<button
-							onClick={() => handleSaveResult("werewolf")}
-							className="w-full bg-red-700 hover:bg-red-600 text-white font-bold text-xl py-5 rounded-2xl transition-colors"
-						>
-							🐺 Ma sói thắng
-						</button>
-					</div>
-
-					<div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-gray-400">
-						Từ bí mật:{" "}
-						<span className="text-white font-bold">
-							{currentGame.word.text}
-						</span>
-					</div>
-				</div>
+			{/* ── STEP 5.5: Endgame Branch ── */}
+			{(step === "find-seer" || step === "find-werewolf") && (
+				<EndgamePhase 
+					type={step === "find-seer" ? "find-seer" : "find-werewolf"} 
+					timeLeft={endgameTimeLeft} 
+				/>
 			)}
 
-			{/* Result saved confirmation */}
-			{step === "result" && result !== null && (
-				<div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-6">
-					<div className="text-7xl">
-						{result === "villagers" ? "🎉" : "🐺"}
-					</div>
-					<h2 className="text-3xl font-extrabold text-white">
-						{result === "villagers"
-							? "Dân làng thắng!"
-							: "Ma sói thắng!"}
-					</h2>
-					<p className="text-gray-400">
-						Từ bí mật:{" "}
-						<span className="text-white font-bold">
-							{currentGame.word.text}
-						</span>
-					</p>
-					<p className="text-gray-500 text-sm">Kết quả đã được lưu</p>
-
-					<button
-						onClick={goHome}
-						className="bg-purple-700 hover:bg-purple-600 text-white font-bold text-xl px-12 py-5 rounded-2xl mt-4 transition-colors"
-					>
-						🏠 Về trang chủ
-					</button>
-				</div>
+			{/* ── STEP 6: Result ── */}
+			{step === "result" && (
+				<ResultPhase
+					result={result}
+					onSaveResult={handleSaveResult}
+					onGoHome={goHome}
+				/>
 			)}
 		</div>
 	);
