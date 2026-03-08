@@ -149,7 +149,7 @@ export default function PlayPage() {
 			setWordVisible(true);
 			setRevealProgress(100);
 
-			speak("Thị trưởng hãy mở mắt và chọn một trong hai từ để bắt đầu.", () => {
+			speak("Thị trưởng hãy chọn một trong hai từ để bắt đầu.", () => {
 				const start = Date.now();
 				const duration = state.settings.mayorWordDuration * 1000;
 
