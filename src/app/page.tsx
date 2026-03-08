@@ -18,7 +18,7 @@ export default function HomePage() {
       {/* Logo */}
       <div className="flex flex-col items-center mb-10">
         <span className="text-7xl mb-3" role="img" aria-label="logo">
-          🐺🌙
+          🐺💬
         </span>
         <h1 className="text-4xl font-extrabold text-white tracking-tight">
           Werewords
@@ -58,6 +58,13 @@ export default function HomePage() {
           className="w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white text-lg font-semibold py-4 rounded-2xl text-center transition-colors border border-gray-700"
         >
           📜 Lịch sử ván chơi
+        </Link>
+
+        <Link
+          href="/rules"
+          className="w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white text-lg font-semibold py-4 rounded-2xl text-center transition-colors border border-gray-700"
+        >
+          📖 Luật chơi
         </Link>
       </div>
 

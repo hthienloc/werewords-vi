@@ -8,11 +8,16 @@ import TimerDisplay from '@/components/TimerDisplay'
 import { speak, setTTSEnabled } from '@/lib/tts'
 import { playWarningBeep, playEndBeep } from '@/lib/audio'
 import { GameHistory } from '@/types'
+import { ALL_ROLES } from '@/lib/roles'
 
 type Step =
+  | 'start-night' // Initial step to unlock audio
   | 'night'
+  | 'mayor-role'
+  | 'mayor-role-end' // Brief pause/sleep after role pick
   | 'mayor-word'
-  | 'sleep'
+  | 'narration'
+  | 'night-end'
   | 'dawn'
   | 'timer'
   | 'result'
@@ -21,13 +26,15 @@ export default function PlayPage() {
   const { state, dispatch } = useApp()
   const router = useRouter()
 
-  const [step, setStep] = useState<Step>('night')
+  const [step, setStep] = useState<Step>('start-night')
   const [wordVisible, setWordVisible] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
   const [paused, setPaused] = useState(false)
   const [flash, setFlash] = useState(false)
   const [ttsOn, setTtsOn] = useState(true)
   const [result, setResult] = useState<'villagers' | 'werewolf' | null>(null)
+  const [narrationIndex, setNarrationIndex] = useState(-1)
+  const [isNarrationActive, setIsNarrationActive] = useState(false)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
@@ -44,17 +51,101 @@ export default function PlayPage() {
     }
   }, [state.hydrated, currentGame, router])
 
+  // Interaction required to unlock audio API
+  function handleStartNight() {
+    speak('Bắt đầu ván chơi.')
+    setStep('night')
+  }
+
   // Step 1: Night falls — announce
   useEffect(() => {
     if (step === 'night') {
-      speak('Tất cả mọi người nhắm mắt lại.')
+      speak('Đêm đã buông xuống. Mọi người hãy nhắm mắt lại.')
+      const t = setTimeout(() => {
+        speak('Mayor, hãy mở mắt và chọn vai trò bí mật của mình.')
+        setStep('mayor-role')
+      }, 4000)
+      return () => clearTimeout(t)
     }
   }, [step])
 
-  // Step 3: Mayor sleep
+  // Step 1.5: Mayor role picked -> Pause then pick word
   useEffect(() => {
-    if (step === 'sleep') {
-      speak('Mayor, nhắm mắt lại.')
+    if (step === 'mayor-role-end') {
+      speak('Mayor, hãy nhắm mắt lại.')
+      const t = setTimeout(() => {
+        speak('Mayor, hãy mở mắt và chọn từ bí mật.')
+        setStep('mayor-word')
+      }, 5000)
+      return () => clearTimeout(t)
+    }
+  }, [step])
+
+  // Step 3: Role Narration Sequence
+  useEffect(() => {
+    if (step !== 'narration' || !currentGame) return
+
+    const rolesToNarrate = ALL_ROLES.filter((r) => {
+      if (!currentGame.roleIds.includes(r.id) || !r.nightDescription) return false
+
+      // Special dependency: Seer/Fortune Teller doesn't wake if Mayor is that role
+      if (r.id === 'role-seer' && currentGame.mayorRoleId === 'role-seer') return false
+      if (r.id === 'role-fortune-teller' && currentGame.mayorRoleId === 'role-fortune-teller') return false
+
+      // Apprentice only wakes if Mayor is Seer or Fortune Teller
+      if (r.id === 'role-apprentice') {
+        const mayorIsSeerLike =
+          currentGame.mayorRoleId === 'role-seer' || currentGame.mayorRoleId === 'role-fortune-teller'
+        if (!mayorIsSeerLike) return false
+      }
+
+      return true
+    }).sort((a, b) => a.priority - b.priority)
+
+    if (narrationIndex === -1) {
+      // Start with Mayor sleep
+      speak('Mayor, hãy nhắm mắt lại.')
+      const t = setTimeout(() => setNarrationIndex(0), 4000)
+      return () => clearTimeout(t)
+    }
+
+    if (narrationIndex < rolesToNarrate.length) {
+      const role = rolesToNarrate[narrationIndex]
+      setIsNarrationActive(true)
+
+      speak(role.nightDescription!)
+
+      // Special content for Fortune Teller? (Mention letters)
+      if (role.id === 'role-fortune-teller') {
+        const firstLetters = currentGame.word.text
+          .split(' ')
+          .map((w) => w[0])
+          .join(', ')
+        speak(`Các chữ cái đầu tiên là: ${firstLetters}.`)
+      }
+
+      const t = setTimeout(() => {
+        speak(`${role.name}, hãy nhắm mắt lại.`)
+        const nextT = setTimeout(() => {
+          setNarrationIndex(narrationIndex + 1)
+          setIsNarrationActive(false)
+        }, 4000)
+        return () => clearTimeout(nextT)
+      }, role.id === 'role-fortune-teller' ? 12000 : 8000)
+
+      return () => clearTimeout(t)
+    } else {
+      // All done, go to night-end
+      setStep('night-end')
+    }
+  }, [step, narrationIndex, currentGame])
+
+  // Step 4: End of night
+  useEffect(() => {
+    if (step === 'night-end') {
+      speak('Mọi người hãy mở mắt ra. Bình minh đã đến.')
+      const t = setTimeout(() => setStep('dawn'), 3000)
+      return () => clearTimeout(t)
     }
   }, [step])
 
@@ -147,7 +238,8 @@ export default function PlayPage() {
 
   function handleWordSeen() {
     setWordVisible(false)
-    setStep('sleep')
+    setStep('narration')
+    setNarrationIndex(-1)
   }
 
   function handleSaveResult(r: 'villagers' | 'werewolf') {
@@ -199,6 +291,23 @@ export default function PlayPage() {
         </button>
       </div>
 
+      {/* ── STEP 0: Manual Start to unlock audio ── */}
+      {step === 'start-night' && (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-8">
+          <div className="text-8xl animate-bounce">🌙</div>
+          <div>
+            <h2 className="text-3xl font-extrabold text-white mb-3">Sẵn sàng?</h2>
+            <p className="text-gray-400 text-lg">Nhấn nút bên dưới để bắt đầu ván chơi.</p>
+          </div>
+          <button
+            onClick={handleStartNight}
+            className="bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white font-bold text-xl px-12 py-5 rounded-2xl shadow-lg shadow-purple-900/40 transition-all transform active:scale-95"
+          >
+            🔥 Bắt đầu Ngay
+          </button>
+        </div>
+      )}
+
       {/* ── STEP 1: Night ── */}
       {step === 'night' && (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-8">
@@ -209,12 +318,44 @@ export default function PlayPage() {
               Tất cả mọi người<br />nhắm mắt lại.
             </p>
           </div>
-          <button
-            onClick={() => setStep('mayor-word')}
-            className="bg-purple-700 hover:bg-purple-600 text-white font-bold text-lg px-10 py-4 rounded-2xl mt-4 transition-colors"
-          >
-            Tiếp theo →
-          </button>
+        </div>
+      )}
+
+      {/* ── STEP 1.5: Mayor Secret Role ── */}
+      {step === 'mayor-role' && (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-6">
+          <div className="text-6xl">🎭</div>
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">Mayor</h2>
+            <p className="text-gray-300 text-lg">
+              Hãy chọn vai trò bí mật của bạn (lá bài ở giữa).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+            {ALL_ROLES.filter(r => ['role-seer', 'role-werewolf', 'role-villager', 'role-fortune-teller', 'role-apprentice', 'role-minion'].includes(r.id)).map((role) => (
+              <button
+                key={role.id}
+                onClick={() => {
+                  dispatch({ type: 'SET_MAYOR_ROLE', payload: role.id })
+                  setStep('mayor-role-end')
+                }}
+                className="bg-gray-800 hover:bg-purple-700/40 border border-gray-700 hover:border-purple-500 rounded-xl py-4 px-3 flex flex-col items-center gap-1 transition-all"
+              >
+                <span className="text-2xl">{role.emoji}</span>
+                <span className="text-sm font-bold text-white">{role.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 1.6: Mayor Transition ── */}
+      {step === 'mayor-role-end' && (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-8">
+          <div className="text-6xl">🧘‍♂️</div>
+          <h2 className="text-3xl font-extrabold text-white">Đang xử lý nội dung...</h2>
+          <p className="text-gray-400">Đừng mở mắt nếu bạn không phải Mayor.</p>
         </div>
       )}
 
@@ -256,20 +397,46 @@ export default function PlayPage() {
         </div>
       )}
 
-      {/* ── STEP 3: Sleep ── */}
-      {step === 'sleep' && (
+      {/* ── STEP 3: Narration ── */}
+      {step === 'narration' && (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-8">
-          <div className="text-8xl">😴</div>
+          <div className="text-8xl animate-pulse">🌙</div>
           <div>
-            <h2 className="text-3xl font-extrabold text-white mb-3">Mayor</h2>
-            <p className="text-gray-300 text-xl">Nhắm mắt lại.</p>
+            <h2 className="text-3xl font-extrabold text-white mb-3">Giai đoạn ban đêm</h2>
+            {narrationIndex === -1 ? (
+              <p className="text-gray-300 text-xl">Mayor đang đi ngủ...</p>
+            ) : narrationIndex < (ALL_ROLES.filter(r => currentGame.roleIds.includes(r.id) && r.nightDescription).length) ? (
+              <div>
+                <span className="text-5xl mb-4 block">
+                  {ALL_ROLES.find(r => r.id === ALL_ROLES.filter((r) => {
+                    if (!currentGame.roleIds.includes(r.id) || !r.nightDescription) return false
+                    if (r.id === 'role-seer' && currentGame.mayorRoleId === 'role-seer') return false
+                    if (r.id === 'role-fortune-teller' && currentGame.mayorRoleId === 'role-fortune-teller') return false
+                    if (r.id === 'role-apprentice') {
+                      const mayorIsSeerLike = currentGame.mayorRoleId === 'role-seer' || currentGame.mayorRoleId === 'role-fortune-teller'
+                      if (!mayorIsSeerLike) return false
+                    }
+                    return true
+                  }).sort((a, b) => a.priority - b.priority)[narrationIndex].id)?.emoji}
+                </span>
+                <p className="text-purple-400 text-2xl font-bold">
+                  {ALL_ROLES.filter((r) => {
+                    if (!currentGame.roleIds.includes(r.id) || !r.nightDescription) return false
+                    if (r.id === 'role-seer' && currentGame.mayorRoleId === 'role-seer') return false
+                    if (r.id === 'role-fortune-teller' && currentGame.mayorRoleId === 'role-fortune-teller') return false
+                    if (r.id === 'role-apprentice') {
+                      const mayorIsSeerLike = currentGame.mayorRoleId === 'role-seer' || currentGame.mayorRoleId === 'role-fortune-teller'
+                      if (!mayorIsSeerLike) return false
+                    }
+                    return true
+                  }).sort((a,b)=>a.priority-b.priority)[narrationIndex].name}
+                </p>
+                <p className="text-gray-300 text-lg mt-2 italic">Đừng mở mắt nếu không phải vai trò này!</p>
+              </div>
+            ) : (
+              <p className="text-gray-300 text-xl">Đang chuẩn bị bình minh...</p>
+            )}
           </div>
-          <button
-            onClick={() => setStep('dawn')}
-            className="bg-purple-700 hover:bg-purple-600 text-white font-bold text-lg px-10 py-4 rounded-2xl mt-4 transition-colors"
-          >
-            Tiếp theo →
-          </button>
         </div>
       )}
 

@@ -41,6 +41,7 @@ const initialState: AppState = {
     selectedPackId: 'pack-food',
     timerDuration: 180,
     filterDifficulty: 'all',
+    selectedRoleIds: ['role-seer', 'role-werewolf', 'role-villager'],
   },
   currentGame: null,
   hydrated: false,
@@ -66,6 +67,7 @@ type Action =
   | { type: 'SET_SETTINGS'; payload: GameSettings }
   | { type: 'UPDATE_SETTINGS'; payload: Partial<GameSettings> }
   | { type: 'START_GAME'; payload: CurrentGame }
+  | { type: 'SET_MAYOR_ROLE'; payload: string }
   | { type: 'END_GAME' }
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -155,6 +157,14 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'START_GAME':
       return { ...state, currentGame: action.payload }
+
+    case 'SET_MAYOR_ROLE':
+      return {
+        ...state,
+        currentGame: state.currentGame
+          ? { ...state.currentGame, mayorRoleId: action.payload }
+          : null,
+      }
 
     case 'END_GAME':
       return { ...state, currentGame: null }

@@ -42,6 +42,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   selectedPackId: 'pack-food',
   timerDuration: 180,
   filterDifficulty: 'all',
+  selectedRoleIds: ['role-seer', 'role-werewolf', 'role-villager'],
 }
 
 export function getSettings(): GameSettings {

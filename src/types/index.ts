@@ -5,6 +5,18 @@ export interface Word {
   used?: boolean
 }
 
+export interface GameRole {
+  id: string
+  name: string
+  emoji: string
+  description: string
+  nightDescription?: string
+  priority: number // Order of waking up at night
+  count?: number
+  isDefault?: boolean
+  complexity: 'easy' | 'medium' | 'hard'
+}
+
 export interface WordPack {
   id: string
   name: string
@@ -28,6 +40,7 @@ export interface GameSettings {
   selectedPackId: string
   timerDuration: number
   filterDifficulty: 'all' | 'easy' | 'medium' | 'hard'
+  selectedRoleIds: string[]
 }
 
 export interface CurrentGame {
@@ -35,4 +48,6 @@ export interface CurrentGame {
   word: Word
   startTime: number
   timerDuration: number
+  roleIds: string[]
+  mayorRoleId?: string
 }
