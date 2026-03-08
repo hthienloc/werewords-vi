@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .portrait-warning {
+    display: flex;
+  }
+  .portrait-content {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+body {
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+}
