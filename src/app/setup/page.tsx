@@ -122,7 +122,6 @@ export default function SetupPage() {
 		});
 
 		initAudio();
-		speak("Bắt đầu ván chơi.");
 
 		dispatch({
 			type: "START_GAME",
