@@ -645,6 +645,8 @@ export default function PlayPage() {
 					</div>
 					<button
 						onClick={() => {
+							// Priming: speak an empty string immediately to capture user gesture
+							import("@/lib/tts").then(m => m.speak(""));
 							import("@/lib/audio").then(m => m.initAudio());
 							setStep("night");
 						}}

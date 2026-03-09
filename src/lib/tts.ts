@@ -1,5 +1,10 @@
 let enabled = true;
 
+// Proactively fetch voices to warm up the engine
+if (typeof window !== "undefined") {
+	window.speechSynthesis.getVoices();
+}
+
 function buildUtterance(text: string): SpeechSynthesisUtterance {
 	const utter = new SpeechSynthesisUtterance(text);
 	utter.lang = "vi-VN";
