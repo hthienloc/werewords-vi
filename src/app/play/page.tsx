@@ -59,6 +59,7 @@ type Step =
 	| "night"
 	| "mayor-role"
 	| "mayor-word"
+	| "mayor-sleep"
 	| "narration"
 	| "night-end"
 	| "dawn"
@@ -160,15 +161,27 @@ export default function PlayPage() {
 					if (elapsed >= duration) {
 						clearInterval(interval);
 						setWordVisible(false);
-						setStep("narration");
-						setNarrationIndex(-1);
-						setNarrationPhase("waking");
+						speak("Thị trưởng hãy nhắm mắt lại.", () => {
+							setStep("mayor-sleep");
+						});
 					}
 				}, 50);
 				return () => clearInterval(interval);
 			});
 		}
 	}, [step, state.settings.mayorWordDuration]);
+
+	// Step 2.5: Mayor Sleeping Phase Transition
+	useEffect(() => {
+		if (step === "mayor-sleep") {
+			const timeout = setTimeout(() => {
+				setStep("narration");
+				setNarrationIndex(-1);
+				setNarrationPhase("waking");
+			}, 2000);
+			return () => clearTimeout(timeout);
+		}
+	}, [step]);
 
 	// Step 3: Role Narration Sequence
 	useEffect(() => {
@@ -458,10 +471,10 @@ export default function PlayPage() {
 		};
 
 		dispatch({ type: "ADD_HISTORY", payload: entry });
-		dispatch({ type: "END_GAME" });
 	}
 
 	function goHome() {
+		dispatch({ type: "END_GAME" });
 		router.push("/");
 	}
 
@@ -537,6 +550,28 @@ export default function PlayPage() {
 					revealProgress={revealProgress}
 					onSelectWord={handleSelectWord}
 				/>
+			)}
+
+			{/* ── STEP 2.5: Thị trưởng Đi ngủ ── */}
+			{step === "mayor-sleep" && (
+				<div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-8">
+					<div className="text-8xl animate-pulse">😴</div>
+					<div>
+						<h2 className="text-3xl font-extrabold text-white mb-3">
+							Thị trưởng ngủ
+						</h2>
+						<p className="text-gray-300 text-xl leading-relaxed">
+							Thị trưởng đang 
+							<br />
+							nhắm mắt lại...
+						</p>
+					</div>
+					<div className="flex gap-1.5">
+						<div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce [animation-delay:-0.3s]"></div>
+						<div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce [animation-delay:-0.15s]"></div>
+						<div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce"></div>
+					</div>
+				</div>
 			)}
 
 			{/* ── STEP 3: Narration ── */}

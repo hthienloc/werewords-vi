@@ -61,7 +61,7 @@ export default function HomePage() {
 			
 			<footer className="mt-12 text-center">
 				<p className="text-gray-500 text-sm font-medium">
-					Tác giả: <Link href="https://github.com/hthienloc" target="_blank" rel="noopener noreferrer" className="text-purple-400 font-bold hover:underline">hthienloc</Link>
+					Phát triển bởi: <Link href="https://github.com/hthienloc" target="_blank" rel="noopener noreferrer" className="text-purple-400 font-bold hover:underline">hthienloc</Link>
 				</p>
 			</footer>
 		</main>

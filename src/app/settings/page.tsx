@@ -193,6 +193,33 @@ export default function SettingsPage() {
 						/>
 					</div>
 				</section>
+
+				<section className="space-y-6">
+					<h2 className="text-red-500 font-bold text-sm uppercase tracking-wider">
+						Dữ liệu & Bộ nhớ
+					</h2>
+					<div className="bg-red-900/10 p-5 rounded-[2rem] border border-red-900/20 space-y-4">
+						<div className="flex items-center gap-4">
+							<div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-2xl">
+								🗑
+							</div>
+							<div>
+								<h3 className="font-black text-white leading-tight">Lịch sử ván chơi</h3>
+								<p className="text-gray-500 text-xs mt-1">Xóa toàn bộ kết quả các ván đã chơi.</p>
+							</div>
+						</div>
+						<button
+							onClick={() => {
+								if (confirm("Xóa toàn bộ lịch sử? Hành động này không thể hoàn tác.")) {
+									dispatch({ type: "CLEAR_HISTORY" });
+								}
+							}}
+							className="w-full py-3 rounded-xl bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white font-bold text-sm transition-all border border-red-600/20"
+						>
+							XOÁ TẤT CẢ LỊCH SỬ
+						</button>
+					</div>
+				</section>
 			</div>
 
 			{/* Footer Action */}

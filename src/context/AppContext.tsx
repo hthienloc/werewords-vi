@@ -75,6 +75,7 @@ type Action =
   | { type: 'START_GAME'; payload: CurrentGame }
   | { type: 'SET_MAYOR_ROLE'; payload: string }
   | { type: 'END_GAME' }
+  | { type: 'DELETE_HISTORY_ITEM'; payload: string }
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
 
@@ -151,6 +152,12 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'CLEAR_HISTORY':
       return { ...state, history: [] }
+
+    case 'DELETE_HISTORY_ITEM':
+      return {
+        ...state,
+        history: state.history.filter((h) => h.id !== action.payload),
+      }
 
     case 'SET_SETTINGS':
       return { ...state, settings: action.payload }
