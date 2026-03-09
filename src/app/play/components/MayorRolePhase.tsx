@@ -31,7 +31,7 @@ export default function MayorRolePhase({ selectionProgress }: MayorRolePhaseProp
 						className="text-purple-500 transition-all duration-75"
 					/>
 				</svg>
-				<div className="text-7xl z-10 drop-shadow-2xl">🎭</div>
+				<div className="text-7xl z-10 drop-shadow-2xl">😶</div>
 			</div>
 			<div>
 				<h2 className="text-2xl font-bold text-white mb-2">Thị trưởng</h2>

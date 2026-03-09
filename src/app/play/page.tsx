@@ -76,6 +76,9 @@ export default function PlayPage() {
 	const [flash, setFlash] = useState(false);
 	const [ttsOn, setTtsOn] = useState(true);
 	const [result, setResult] = useState<"villagers" | "werewolf" | null>(null);
+	const [endgameType, setEndgameType] = useState<
+		"find-seer" | "find-werewolf" | null
+	>(null);
 	const [narrationIndex, setNarrationIndex] = useState(-1);
 	const [narrationPhase, setNarrationPhase] = useState<"waking" | "sleeping">(
 		"waking"
@@ -104,6 +107,7 @@ export default function PlayPage() {
 			setNarrationPhase("waking");
 			setPaused(false);
 			setEndgameTimeLeft(0);
+			setEndgameType(null);
 			setEndgameNarrating(false);
 			lastSpokenRef.current = -1;
 			warningFiredRef.current = false;
@@ -472,6 +476,7 @@ export default function PlayPage() {
 						}
 					);
 					setEndgameTimeLeft(state.settings.findWerewolfDuration);
+					setEndgameType("find-werewolf");
 					setStep("find-werewolf");
 					return 0;
 				}
@@ -554,6 +559,7 @@ export default function PlayPage() {
 			setEndgameNarrating(false);
 		});
 		setEndgameTimeLeft(state.settings.findSeerDuration);
+		setEndgameType("find-seer");
 		setStep("find-seer");
 	}
 
@@ -798,6 +804,7 @@ export default function PlayPage() {
 			{step === "result" && (
 				<ResultPhase
 					result={result}
+					endgameType={endgameType}
 					onSaveResult={handleSaveResult}
 					onGoHome={goHome}
 				/>
