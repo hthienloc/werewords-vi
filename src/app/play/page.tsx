@@ -100,6 +100,24 @@ export default function PlayPage() {
 
 	const currentGame = state.currentGame;
 
+	// Reset local state when a brand new game starts
+	useEffect(() => {
+		if (currentGame) {
+			setStep("night");
+			setResult(null);
+			setWordVisible(false);
+			setNarrationIndex(-1);
+			setNarrationPhase("waking");
+			setPaused(false);
+			setEndgameTimeLeft(0);
+			setEndgameNarrating(false);
+			lastSpokenRef.current = -1;
+			warningFiredRef.current = false;
+			endFiredRef.current = false;
+			durationRef.current = 0;
+		}
+	}, [currentGame?.startTime]);
+
 	// Redirect if no game
 	useEffect(() => {
 		if (state.hydrated && !currentGame) {
@@ -109,7 +127,7 @@ export default function PlayPage() {
 
 
 	useEffect(() => {
-		if (step === "night") {
+		if (step === "night" && currentGame) {
 			import("@/lib/audio").then((m) => m.playSleepChime());
 			speak("Đêm xuống. Tất cả mọi người nhắm mắt lại.", () => {
 				setTimeout(() => {
@@ -117,7 +135,7 @@ export default function PlayPage() {
 				}, state.settings.initialNightDuration * 1000);
 			});
 		}
-	}, [step]);
+	}, [step, currentGame?.startTime, state.settings.initialNightDuration]);
 
 	// Step 1.5: Thị trưởng role - auto pick or delay
 	useEffect(() => {
@@ -474,6 +492,9 @@ export default function PlayPage() {
 	}
 
 	function goHome() {
+		if (typeof window !== "undefined") {
+			window.speechSynthesis.cancel();
+		}
 		dispatch({ type: "END_GAME" });
 		router.push("/");
 	}
