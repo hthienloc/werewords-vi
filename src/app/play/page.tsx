@@ -13,7 +13,7 @@ import {
 	playSleepChime,
 	playWakeChime,
 } from "@/lib/audio";
-import { GameHistory, CurrentGame, GameRole } from "@/types";
+import { GameHistory, CurrentGame, GameRole, Word } from "@/types";
 import { ALL_ROLES, WORD_ROLES } from "@/lib/roles";
 
 // Sub-components
