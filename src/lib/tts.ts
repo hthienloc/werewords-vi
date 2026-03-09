@@ -50,26 +50,45 @@ export function speak(text: string, onEnd?: () => void): void {
 	const voices = synth.getVoices();
 
 	const wrapOnEnd = () => {
-		if (onEnd) onEnd();
+		if (onEnd) {
+			onEnd();
+			onEnd = undefined; // Prevent double trigger
+		}
 	};
+
+	// Total safety fallback for the entire utterance
+	const safetyTimeout = setTimeout(wrapOnEnd, 10000);
 
 	if (voices.length > 0) {
 		const utter = buildUtterance(text);
-		utter.onend = wrapOnEnd;
-		utter.onerror = wrapOnEnd;
+		utter.onend = () => {
+			clearTimeout(safetyTimeout);
+			wrapOnEnd();
+		};
+		utter.onerror = () => {
+			clearTimeout(safetyTimeout);
+			wrapOnEnd();
+		};
 		
 		synth.cancel();
 		synth.speak(utter);
 	} else {
+		let handled = false;
 		const handler = () => {
+			if (handled) return;
+			handled = true;
 			synth.removeEventListener("voiceschanged", handler);
 			speak(text, onEnd);
 		};
 		synth.addEventListener("voiceschanged", handler);
+		
+		// Wait max 500ms for voices, otherwise just try to speak
 		setTimeout(() => {
+			if (handled) return;
+			handled = true;
 			synth.removeEventListener("voiceschanged", handler);
-			if (!synth.speaking) speak(text, onEnd);
-		}, 300);
+			speak(text, onEnd);
+		}, 500);
 	}
 }
 

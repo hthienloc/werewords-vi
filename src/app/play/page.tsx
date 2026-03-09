@@ -72,7 +72,7 @@ export default function PlayPage() {
 	const { state, dispatch } = useApp();
 	const router = useRouter();
 
-	const [step, setStep] = useState<Step>("night");
+	const [step, setStep] = useState<Step>("start-night");
 	const [wordVisible, setWordVisible] = useState(false);
 	const [timeLeft, setTimeLeft] = useState(0);
 	const [endgameTimeLeft, setEndgameTimeLeft] = useState(0);
@@ -126,21 +126,45 @@ export default function PlayPage() {
 	}, [state.hydrated, currentGame, router]);
 
 
+	// Step 1: Night Narration
 	useEffect(() => {
 		if (step === "night" && currentGame) {
 			import("@/lib/audio").then((m) => m.playSleepChime());
+			
+			let fallbackTriggered = false;
+			const fallback = setTimeout(() => {
+				if (!fallbackTriggered) {
+					fallbackTriggered = true;
+					setStep("mayor-role");
+				}
+			}, (state.settings.initialNightDuration + 2) * 1000);
+
 			speak("Đêm xuống. Tất cả mọi người nhắm mắt lại.", () => {
+				clearTimeout(fallback);
+				if (fallbackTriggered) return;
+				fallbackTriggered = true;
 				setTimeout(() => {
 					setStep("mayor-role");
 				}, state.settings.initialNightDuration * 1000);
 			});
+			
+			return () => clearTimeout(fallback);
 		}
 	}, [step, currentGame?.startTime, state.settings.initialNightDuration]);
 
 	// Step 1.5: Thị trưởng role - auto pick or delay
 	useEffect(() => {
 		if (step === "mayor-role") {
+			let fallbackTriggered = false;
+			const fallback = setTimeout(() => {
+				if (!fallbackTriggered) {
+					fallbackTriggered = true;
+					setStep("mayor-word");
+				}
+			}, (state.settings.mayorRoleDuration + 5) * 1000);
+
 			speak("Thị trưởng mở mắt, hãy xem vai trò bí mật của bạn.", () => {
+				// Don't clear fallback immediately, wait for progress logic
 				setSelectionProgress(100);
 				const start = Date.now();
 				const duration = state.settings.mayorRoleDuration * 1000;
@@ -153,11 +177,18 @@ export default function PlayPage() {
 					setSelectionProgress(remaining);
 					if (elapsed >= duration) {
 						clearInterval(interval);
+						clearTimeout(fallback);
+						if (fallbackTriggered) return;
+						fallbackTriggered = true;
 						setStep("mayor-word");
 					}
 				}, 50);
-				return () => clearInterval(interval);
+				return () => {
+					clearInterval(interval);
+				};
 			});
+			
+			return () => clearTimeout(fallback);
 		}
 	}, [step, state.settings.mayorRoleDuration]);
 
@@ -179,7 +210,18 @@ export default function PlayPage() {
 					if (elapsed >= duration) {
 						clearInterval(interval);
 						setWordVisible(false);
+						let fallbackTriggered = false;
+						const fallback = setTimeout(() => {
+							if (!fallbackTriggered) {
+								fallbackTriggered = true;
+								setStep("mayor-sleep");
+							}
+						}, 5000);
+
 						speak("Thị trưởng hãy nhắm mắt lại.", () => {
+							if (fallbackTriggered) return;
+							fallbackTriggered = true;
+							clearTimeout(fallback);
 							setStep("mayor-sleep");
 						});
 					}
@@ -196,7 +238,7 @@ export default function PlayPage() {
 				setStep("narration");
 				setNarrationIndex(-1);
 				setNarrationPhase("waking");
-			}, 2000);
+			}, 3000); // 3 seconds safety
 			return () => clearTimeout(timeout);
 		}
 	}, [step]);
@@ -225,7 +267,19 @@ export default function PlayPage() {
 				text += ` Chữ cái đầu là ${letters}.`;
 			}
 
+			let fallbackTriggered = false;
+			const fallback = setTimeout(() => {
+				if (!fallbackTriggered) {
+					fallbackTriggered = true;
+					setNarrationPhase("sleeping");
+				}
+			}, (state.settings.narrationDuration + 10) * 1000);
+
 			speak(text, () => {
+				if (fallbackTriggered) return;
+				fallbackTriggered = true;
+				clearTimeout(fallback);
+				
 				// Start countdown for the role's action time
 				setSelectionProgress(100);
 				const startSnapshot = Date.now();
@@ -250,7 +304,26 @@ export default function PlayPage() {
 		// Role sleeping → move to next
 		if (narrationIndex < roles.length && narrationPhase === "sleeping") {
 			const role = roles[narrationIndex];
+			
+			let fallbackTriggered = false;
+			const fallback = setTimeout(() => {
+				if (!fallbackTriggered) {
+					fallbackTriggered = true;
+					const next = narrationIndex + 1;
+					if (next >= roles.length) {
+						setStep("night-end");
+					} else {
+						setNarrationIndex(next);
+						setNarrationPhase("waking");
+					}
+				}
+			}, 5000);
+
 			speak(`${role.name} nhắm mắt.`, () => {
+				if (fallbackTriggered) return;
+				fallbackTriggered = true;
+				clearTimeout(fallback);
+				
 				setTimeout(() => {
 					const next = narrationIndex + 1;
 					if (next >= roles.length) {
@@ -275,10 +348,25 @@ export default function PlayPage() {
 	useEffect(() => {
 		if (step === "dawn") {
 			import("@/lib/audio").then((m) => m.playWakeChime());
+			
+			let fallbackTriggered = false;
+			const fallback = setTimeout(() => {
+				if (!fallbackTriggered) {
+					fallbackTriggered = true;
+					setStep("timer");
+					setTimeLeft(currentGame?.timerDuration ?? 180);
+				}
+			}, 8000);
+
 			speak("Mọi người hãy mở mắt. Bình minh đã tới, hãy bắt đầu đặt câu hỏi cho Thị trưởng.", () => {
+				if (fallbackTriggered) return;
+				fallbackTriggered = true;
+				clearTimeout(fallback);
 				setStep("timer");
 				setTimeLeft(currentGame?.timerDuration ?? 180);
 			});
+			
+			return () => clearTimeout(fallback);
 		}
 	}, [step, currentGame]);
 
@@ -539,6 +627,33 @@ export default function PlayPage() {
 				</button>
 			</div>
 
+
+			{/* ── STEP 0: Audio Unlock (Start Night) ── */}
+			{step === "start-night" && (
+				<div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-10">
+					<div className="relative">
+						<div className="text-8xl animate-bounce">🌙</div>
+						<div className="absolute -top-2 -right-2 text-4xl animate-pulse">✨</div>
+					</div>
+					<div className="space-y-4">
+						<h2 className="text-4xl font-black text-white uppercase tracking-tighter">
+							Sẵn sàng chưa?
+						</h2>
+						<p className="text-gray-400 text-lg max-w-xs mx-auto">
+							Nhấn nút bên dưới để bắt đầu giai đoạn đêm xuống.
+						</p>
+					</div>
+					<button
+						onClick={() => {
+							import("@/lib/audio").then(m => m.initAudio());
+							setStep("night");
+						}}
+						className="w-full max-w-xs bg-purple-700 hover:bg-purple-600 active:scale-95 text-white font-black text-2xl py-6 rounded-3xl transition-all shadow-xl shadow-purple-900/40 border-b-8 border-purple-900"
+					>
+						BẮT ĐẦU ĐÊM 🐺
+					</button>
+				</div>
+			)}
 
 			{/* ── STEP 1: Night ── */}
 			{step === "night" && (
