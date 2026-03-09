@@ -14,7 +14,7 @@ import {
 	playWakeChime,
 } from "@/lib/audio";
 import { GameHistory, CurrentGame, GameRole } from "@/types";
-import { ALL_ROLES } from "@/lib/roles";
+import { ALL_ROLES, WORD_ROLES } from "@/lib/roles";
 
 // Sub-components
 import FourWayReveal from "./components/FourWayReveal";
@@ -24,14 +24,6 @@ import NarrationPhase from "./components/NarrationPhase";
 import TimerPhase from "./components/TimerPhase";
 import ResultPhase from "./components/ResultPhase";
 import EndgamePhase from "./components/EndgamePhase";
-
-// Roles that need to see the secret word during narration
-const WORD_ROLES = new Set([
-	"role-seer",
-	"role-fortune-teller",
-	"role-apprentice",
-	"role-werewolf",
-]);
 
 /** Returns the ordered list of roles that need to be narrated for this game. */
 function getActiveRoles(game: CurrentGame): GameRole[] {
@@ -64,8 +56,8 @@ type Step =
 	| "night-end"
 	| "dawn"
 	| "timer"
-	| "find-seer"      // New: Word guessed, Werewolves find Seer
-	| "find-werewolf"  // New: Time up, Villagers find Werewolf
+	| "find-seer" // New: Word guessed, Werewolves find Seer
+	| "find-werewolf" // New: Time up, Villagers find Werewolf
 	| "result";
 
 export default function PlayPage() {
@@ -90,7 +82,9 @@ export default function PlayPage() {
 	);
 
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-	const endgameIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	const endgameIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+		null
+	);
 	const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 	const warningFiredRef = useRef(false);
 	const endFiredRef = useRef(false);
@@ -103,7 +97,7 @@ export default function PlayPage() {
 	// Reset local state when a brand new game starts
 	useEffect(() => {
 		if (currentGame) {
-			setStep("night");
+			setStep("start-night");
 			setResult(null);
 			setWordVisible(false);
 			setNarrationIndex(-1);
@@ -125,19 +119,21 @@ export default function PlayPage() {
 		}
 	}, [state.hydrated, currentGame, router]);
 
-
 	// Step 1: Night Narration
 	useEffect(() => {
 		if (step === "night" && currentGame) {
 			import("@/lib/audio").then((m) => m.playSleepChime());
-			
+
 			let fallbackTriggered = false;
-			const fallback = setTimeout(() => {
-				if (!fallbackTriggered) {
-					fallbackTriggered = true;
-					setStep("mayor-role");
-				}
-			}, (state.settings.initialNightDuration + 2) * 1000);
+			const fallback = setTimeout(
+				() => {
+					if (!fallbackTriggered) {
+						fallbackTriggered = true;
+						setStep("mayor-role");
+					}
+				},
+				(state.settings.initialNightDuration + 2) * 1000
+			);
 
 			speak("Đêm xuống. Tất cả mọi người nhắm mắt lại.", () => {
 				clearTimeout(fallback);
@@ -147,7 +143,7 @@ export default function PlayPage() {
 					setStep("mayor-role");
 				}, state.settings.initialNightDuration * 1000);
 			});
-			
+
 			return () => clearTimeout(fallback);
 		}
 	}, [step, currentGame?.startTime, state.settings.initialNightDuration]);
@@ -156,12 +152,15 @@ export default function PlayPage() {
 	useEffect(() => {
 		if (step === "mayor-role") {
 			let fallbackTriggered = false;
-			const fallback = setTimeout(() => {
-				if (!fallbackTriggered) {
-					fallbackTriggered = true;
-					setStep("mayor-word");
-				}
-			}, (state.settings.mayorRoleDuration + 5) * 1000);
+			const fallback = setTimeout(
+				() => {
+					if (!fallbackTriggered) {
+						fallbackTriggered = true;
+						setStep("mayor-word");
+					}
+				},
+				(state.settings.mayorRoleDuration + 5) * 1000
+			);
 
 			speak("Thị trưởng mở mắt, hãy xem vai trò bí mật của bạn.", () => {
 				// Don't clear fallback immediately, wait for progress logic
@@ -187,11 +186,10 @@ export default function PlayPage() {
 					clearInterval(interval);
 				};
 			});
-			
+
 			return () => clearTimeout(fallback);
 		}
 	}, [step, state.settings.mayorRoleDuration]);
-
 
 	useEffect(() => {
 		if (step === "mayor-word") {
@@ -205,7 +203,10 @@ export default function PlayPage() {
 
 				const interval = setInterval(() => {
 					const elapsed = Date.now() - start;
-					const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+					const remaining = Math.max(
+						0,
+						100 - (elapsed / duration) * 100
+					);
 					setRevealProgress(remaining);
 					if (elapsed >= duration) {
 						clearInterval(interval);
@@ -268,18 +269,21 @@ export default function PlayPage() {
 			}
 
 			let fallbackTriggered = false;
-			const fallback = setTimeout(() => {
-				if (!fallbackTriggered) {
-					fallbackTriggered = true;
-					setNarrationPhase("sleeping");
-				}
-			}, (state.settings.narrationDuration + 10) * 1000);
+			const fallback = setTimeout(
+				() => {
+					if (!fallbackTriggered) {
+						fallbackTriggered = true;
+						setNarrationPhase("sleeping");
+					}
+				},
+				(state.settings.narrationDuration + 10) * 1000
+			);
 
 			speak(text, () => {
 				if (fallbackTriggered) return;
 				fallbackTriggered = true;
 				clearTimeout(fallback);
-				
+
 				// Start countdown for the role's action time
 				setSelectionProgress(100);
 				const startSnapshot = Date.now();
@@ -291,7 +295,7 @@ export default function PlayPage() {
 						100 - (elapsed / duration) * 100
 					);
 					setSelectionProgress(remaining);
-					
+
 					if (elapsed >= duration) {
 						clearInterval(interval);
 						setNarrationPhase("sleeping");
@@ -304,7 +308,7 @@ export default function PlayPage() {
 		// Role sleeping → move to next
 		if (narrationIndex < roles.length && narrationPhase === "sleeping") {
 			const role = roles[narrationIndex];
-			
+
 			let fallbackTriggered = false;
 			const fallback = setTimeout(() => {
 				if (!fallbackTriggered) {
@@ -323,7 +327,7 @@ export default function PlayPage() {
 				if (fallbackTriggered) return;
 				fallbackTriggered = true;
 				clearTimeout(fallback);
-				
+
 				setTimeout(() => {
 					const next = narrationIndex + 1;
 					if (next >= roles.length) {
@@ -335,7 +339,13 @@ export default function PlayPage() {
 				}, 2000);
 			});
 		}
-	}, [step, narrationIndex, narrationPhase, currentGame]);
+	}, [
+		step,
+		narrationIndex,
+		narrationPhase,
+		currentGame,
+		state.settings.narrationDuration,
+	]);
 
 	// Step 4: End of night
 	useEffect(() => {
@@ -348,7 +358,7 @@ export default function PlayPage() {
 	useEffect(() => {
 		if (step === "dawn") {
 			import("@/lib/audio").then((m) => m.playWakeChime());
-			
+
 			let fallbackTriggered = false;
 			const fallback = setTimeout(() => {
 				if (!fallbackTriggered) {
@@ -358,14 +368,17 @@ export default function PlayPage() {
 				}
 			}, 8000);
 
-			speak("Mọi người hãy mở mắt. Bình minh đã tới, hãy bắt đầu đặt câu hỏi cho Thị trưởng.", () => {
-				if (fallbackTriggered) return;
-				fallbackTriggered = true;
-				clearTimeout(fallback);
-				setStep("timer");
-				setTimeLeft(currentGame?.timerDuration ?? 180);
-			});
-			
+			speak(
+				"Mọi người hãy mở mắt. Bình minh đã tới, hãy bắt đầu đặt câu hỏi cho Thị trưởng.",
+				() => {
+					if (fallbackTriggered) return;
+					fallbackTriggered = true;
+					clearTimeout(fallback);
+					setStep("timer");
+					setTimeLeft(currentGame?.timerDuration ?? 180);
+				}
+			);
+
 			return () => clearTimeout(fallback);
 		}
 	}, [step, currentGame]);
@@ -449,12 +462,15 @@ export default function PlayPage() {
 					playEndBeep();
 					clearInterval(intervalRef.current!);
 					intervalRef.current = null;
-					
+
 					// Transition to "Find Werewolf" phase
 					setEndgameNarrating(true);
-					speak("Hết giờ! Dân làng hãy thảo luận để tìm ra Ma sói.", () => {
-						setEndgameNarrating(false);
-					});
+					speak(
+						"Hết giờ! Dân làng hãy thảo luận để tìm ra Ma sói.",
+						() => {
+							setEndgameNarrating(false);
+						}
+					);
 					setEndgameTimeLeft(state.settings.findWerewolfDuration);
 					setStep("find-werewolf");
 					return 0;
@@ -471,7 +487,10 @@ export default function PlayPage() {
 
 	// Endgame Timer Logic
 	useEffect(() => {
-		if ((step !== "find-seer" && step !== "find-werewolf") || endgameNarrating) {
+		if (
+			(step !== "find-seer" && step !== "find-werewolf") ||
+			endgameNarrating
+		) {
 			lastSpokenRef.current = -1;
 			return;
 		}
@@ -479,14 +498,14 @@ export default function PlayPage() {
 		endgameIntervalRef.current = setInterval(() => {
 			setEndgameTimeLeft((prev) => {
 				const next = Math.max(0, prev - 1);
-				
+
 				// Side effects should happen outside or be guarded
 				if (next <= 5 && next > 0 && next !== lastSpokenRef.current) {
 					lastSpokenRef.current = next;
 					playWarningBeep();
 					speak(next.toString());
 				}
-				
+
 				if (next === 0 && lastSpokenRef.current !== 0) {
 					lastSpokenRef.current = 0;
 					playEndBeep();
@@ -498,13 +517,19 @@ export default function PlayPage() {
 		}, 1000);
 
 		return () => {
-			if (endgameIntervalRef.current) clearInterval(endgameIntervalRef.current);
+			if (endgameIntervalRef.current)
+				clearInterval(endgameIntervalRef.current);
 		};
 	}, [step, endgameNarrating]);
 
 	// Auto-navigate when endgame timer hits zero
 	useEffect(() => {
-		if ((step === "find-seer" || step === "find-werewolf") && endgameTimeLeft === 0 && !endgameNarrating && lastSpokenRef.current === 0) {
+		if (
+			(step === "find-seer" || step === "find-werewolf") &&
+			endgameTimeLeft === 0 &&
+			!endgameNarrating &&
+			lastSpokenRef.current === 0
+		) {
 			const timeout = setTimeout(() => setStep("result"), 1000);
 			return () => clearTimeout(timeout);
 		}
@@ -523,7 +548,7 @@ export default function PlayPage() {
 			clearInterval(intervalRef.current);
 			intervalRef.current = null;
 		}
-		
+
 		setEndgameNarrating(true);
 		speak("Đoán trúng từ! Ma sói hãy tìm ra Tiên tri.", () => {
 			setEndgameNarrating(false);
@@ -532,7 +557,7 @@ export default function PlayPage() {
 		setStep("find-seer");
 	}
 
-	function handleSelectWord(word: any) {
+	function handleSelectWord(word: Word) {
 		if (!currentGame) return;
 		dispatch({
 			type: "START_GAME",
@@ -627,13 +652,14 @@ export default function PlayPage() {
 				</button>
 			</div>
 
-
 			{/* ── STEP 0: Audio Unlock (Start Night) ── */}
 			{step === "start-night" && (
 				<div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-10">
 					<div className="relative">
 						<div className="text-8xl animate-bounce">🌙</div>
-						<div className="absolute -top-2 -right-2 text-4xl animate-pulse">✨</div>
+						<div className="absolute -top-2 -right-2 text-4xl animate-pulse">
+							✨
+						</div>
 					</div>
 					<div className="space-y-4">
 						<h2 className="text-4xl font-black text-white uppercase tracking-tighter">
@@ -646,8 +672,8 @@ export default function PlayPage() {
 					<button
 						onClick={() => {
 							// Priming: speak an empty string immediately to capture user gesture
-							import("@/lib/tts").then(m => m.speak(""));
-							import("@/lib/audio").then(m => m.initAudio());
+							import("@/lib/tts").then((m) => m.speak(""));
+							import("@/lib/audio").then((m) => m.initAudio());
 							setStep("night");
 						}}
 						className="w-full max-w-xs bg-purple-700 hover:bg-purple-600 active:scale-95 text-white font-black text-2xl py-6 rounded-3xl transition-all shadow-xl shadow-purple-900/40 border-b-8 border-purple-900"
@@ -679,7 +705,6 @@ export default function PlayPage() {
 				<MayorRolePhase selectionProgress={selectionProgress} />
 			)}
 
-
 			{/* ── STEP 2: Thị trưởng sees word ── */}
 			{step === "mayor-word" && (
 				<MayorWordPhase
@@ -699,7 +724,7 @@ export default function PlayPage() {
 							Thị trưởng ngủ
 						</h2>
 						<p className="text-gray-300 text-xl leading-relaxed">
-							Thị trưởng đang 
+							Thị trưởng đang
 							<br />
 							nhắm mắt lại...
 						</p>
@@ -763,9 +788,9 @@ export default function PlayPage() {
 
 			{/* ── STEP 5.5: Endgame Branch ── */}
 			{(step === "find-seer" || step === "find-werewolf") && (
-				<EndgamePhase 
-					type={step === "find-seer" ? "find-seer" : "find-werewolf"} 
-					timeLeft={endgameTimeLeft} 
+				<EndgamePhase
+					type={step === "find-seer" ? "find-seer" : "find-werewolf"}
+					timeLeft={endgameTimeLeft}
 				/>
 			)}
 

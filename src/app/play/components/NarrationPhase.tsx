@@ -1,15 +1,8 @@
 "use client";
 
 import { GameRole } from "@/types";
+import { WORD_ROLES } from "@/lib/roles";
 import FourWayReveal from "./FourWayReveal";
-
-// Roles that need to see the secret word during narration
-const WORD_ROLES = new Set([
-	"role-seer",
-	"role-fortune-teller",
-	"role-apprentice",
-	"role-werewolf",
-]);
 
 interface NarrationPhaseProps {
 	currentRole: GameRole | null;
@@ -42,7 +35,9 @@ export default function NarrationPhase({
 					<h2 className="text-3xl font-extrabold text-white mb-3">
 						Giai đoạn ban đêm
 					</h2>
-					<p className="text-gray-300 text-xl">Thị trưởng đang đi ngủ...</p>
+					<p className="text-gray-300 text-xl">
+						Thị trưởng đang đi ngủ...
+					</p>
 				</div>
 			)}
 
@@ -73,7 +68,10 @@ export default function NarrationPhase({
 										stroke="currentColor"
 										strokeWidth="6"
 										strokeDasharray="282.74"
-										strokeDashoffset={282.74 * (1 - selectionProgress / 100)}
+										strokeDashoffset={
+											282.74 *
+											(1 - selectionProgress / 100)
+										}
 										strokeLinecap="round"
 										className="text-purple-500 transition-all duration-75"
 									/>
@@ -96,7 +94,11 @@ export default function NarrationPhase({
 					{/* Word/letters for roles that need them */}
 					{WORD_ROLES.has(currentRole.id) && (
 						<FourWayReveal
-							text={Array.isArray(wordText) ? wordText.join(" · ") : wordText}
+							text={
+								Array.isArray(wordText)
+									? wordText.join(" · ")
+									: wordText
+							}
 							progress={selectionProgress}
 							roleName={currentRole.name}
 						/>
@@ -104,7 +106,9 @@ export default function NarrationPhase({
 
 					{/* Action-only roles status */}
 					{!WORD_ROLES.has(currentRole.id) && (
-						<p className="text-gray-300 text-lg">Đang chờ hành động...</p>
+						<p className="text-gray-300 text-lg">
+							Đang chờ hành động...
+						</p>
 					)}
 				</div>
 			)}
@@ -112,7 +116,9 @@ export default function NarrationPhase({
 			{/* Role sleeping */}
 			{currentRole && narrationPhase === "sleeping" && (
 				<div>
-					<span className="text-5xl block mb-3">{currentRole.emoji}</span>
+					<span className="text-5xl block mb-3">
+						{currentRole.emoji}
+					</span>
 					<p className="text-gray-300 text-xl">
 						{currentRole.name} đang đi ngủ...
 					</p>
@@ -121,7 +127,9 @@ export default function NarrationPhase({
 
 			{/* Between roles / Transition */}
 			{narrationIndex >= activeRolesLength && narrationIndex >= 0 && (
-				<p className="text-gray-300 text-xl">Đang chuẩn bị bình minh...</p>
+				<p className="text-gray-300 text-xl">
+					Đang chuẩn bị bình minh...
+				</p>
 			)}
 		</div>
 	);

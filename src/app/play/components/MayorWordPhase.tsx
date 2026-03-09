@@ -1,13 +1,7 @@
 "use client";
 
+import { Word } from "@/types";
 import FourWayReveal from "./FourWayReveal";
-
-// Assuming Word type is defined elsewhere or needs to be defined here
-interface Word {
-	id: string;
-	text: string;
-	difficulty: "easy" | "medium" | "hard";
-}
 
 interface MayorWordPhaseProps {
 	candidateWords?: Word[];
@@ -126,13 +120,15 @@ export default function MayorWordPhase({
 							stroke="currentColor"
 							strokeWidth="6"
 							strokeDasharray="211.11"
-							strokeDashoffset={211.11 * (1 - revealProgress / 100)}
+							strokeDashoffset={
+								211.11 * (1 - revealProgress / 100)
+							}
 							strokeLinecap="round"
 							className="text-purple-500 transition-all duration-75"
 						/>
 					</svg>
 					<span className="text-xs font-black text-white">
-						{Math.ceil((revealProgress / 100) * (10))}s
+						{Math.ceil((revealProgress / 100) * 10)}s
 					</span>
 				</div>
 			</div>

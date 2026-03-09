@@ -1,6 +1,7 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
+import { DEFAULT_SETTINGS } from "@/lib/storage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -38,23 +39,14 @@ export default function SettingsPage() {
 						/>
 					</svg>
 				</button>
-				<h1 className="text-xl font-black uppercase tracking-tight">Cài đặt</h1>
+				<h1 className="text-xl font-black uppercase tracking-tight">
+					Cài đặt
+				</h1>
 				<button
 					onClick={() => {
 						dispatch({
 							type: "SET_SETTINGS",
-							payload: {
-								selectedPackIds: ["pack-food"],
-								timerDuration: 180,
-								initialNightDuration: 5,
-								mayorRoleDuration: 5,
-								mayorWordDuration: 10,
-								narrationDuration: 8,
-								findSeerDuration: 15,
-								findWerewolfDuration: 60,
-								filterDifficulty: "all",
-								selectedRoleIds: ["role-seer", "role-werewolf", "role-villager"],
-							},
+							payload: DEFAULT_SETTINGS,
 						});
 					}}
 					className="ml-auto text-xs font-bold text-gray-500 hover:text-purple-400 transition-colors uppercase tracking-widest border border-gray-800 px-3 py-1 rounded-full"
@@ -72,9 +64,14 @@ export default function SettingsPage() {
 					{/* Timer Duration */}
 					<div className="space-y-3 bg-gray-900/40 p-5 rounded-2xl border border-gray-800">
 						<div className="flex justify-between items-center">
-							<label className="font-bold text-gray-200">Thảo luận</label>
+							<label className="font-bold text-gray-200">
+								Thảo luận
+							</label>
 							<span className="text-purple-400 font-black text-xl">
-								{Math.floor(settings.timerDuration / 60)}:{(settings.timerDuration % 60).toString().padStart(2, '0')}
+								{Math.floor(settings.timerDuration / 60)}:
+								{(settings.timerDuration % 60)
+									.toString()
+									.padStart(2, "0")}
 							</span>
 						</div>
 						<input
@@ -83,17 +80,28 @@ export default function SettingsPage() {
 							max="600"
 							step="30"
 							value={settings.timerDuration}
-							onChange={(e) => updateSetting("timerDuration", parseInt(e.target.value))}
+							onChange={(e) =>
+								updateSetting(
+									"timerDuration",
+									parseInt(e.target.value)
+								)
+							}
 							className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
 						/>
-						<p className="text-xs text-gray-500">Thời gian dân làng đặt câu hỏi.</p>
+						<p className="text-xs text-gray-500">
+							Thời gian dân làng đặt câu hỏi.
+						</p>
 					</div>
 
 					{/* Initial Night Duration */}
 					<div className="space-y-3 bg-gray-900/40 p-5 rounded-2xl border border-gray-800">
 						<div className="flex justify-between items-center">
-							<label className="font-bold text-gray-200">Chuẩn bị nhắm mắt</label>
-							<span className="text-purple-400 font-black text-xl">{settings.initialNightDuration}s</span>
+							<label className="font-bold text-gray-200">
+								Chuẩn bị nhắm mắt
+							</label>
+							<span className="text-purple-400 font-black text-xl">
+								{settings.initialNightDuration}s
+							</span>
 						</div>
 						<input
 							type="range"
@@ -101,17 +109,28 @@ export default function SettingsPage() {
 							max="15"
 							step="1"
 							value={settings.initialNightDuration}
-							onChange={(e) => updateSetting("initialNightDuration", parseInt(e.target.value))}
+							onChange={(e) =>
+								updateSetting(
+									"initialNightDuration",
+									parseInt(e.target.value)
+								)
+							}
 							className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
 						/>
-						<p className="text-xs text-gray-500">Thời gian chờ sau câu 'Mọi người nhắm mắt lại'.</p>
+						<p className="text-xs text-gray-500">
+							Thời gian chờ sau câu 'Mọi người nhắm mắt lại'.
+						</p>
 					</div>
 
 					{/* Mayor Role Duration */}
 					<div className="space-y-3 bg-gray-900/40 p-5 rounded-2xl border border-gray-800">
 						<div className="flex justify-between items-center">
-							<label className="font-bold text-gray-200">Thị trưởng xem vai</label>
-							<span className="text-purple-400 font-black text-xl">{settings.mayorRoleDuration}s</span>
+							<label className="font-bold text-gray-200">
+								Thị trưởng xem vai
+							</label>
+							<span className="text-purple-400 font-black text-xl">
+								{settings.mayorRoleDuration}s
+							</span>
 						</div>
 						<input
 							type="range"
@@ -119,7 +138,12 @@ export default function SettingsPage() {
 							max="30"
 							step="1"
 							value={settings.mayorRoleDuration}
-							onChange={(e) => updateSetting("mayorRoleDuration", parseInt(e.target.value))}
+							onChange={(e) =>
+								updateSetting(
+									"mayorRoleDuration",
+									parseInt(e.target.value)
+								)
+							}
 							className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
 						/>
 					</div>
@@ -127,8 +151,12 @@ export default function SettingsPage() {
 					{/* Mayor Word Duration */}
 					<div className="space-y-3 bg-gray-900/40 p-5 rounded-2xl border border-gray-800">
 						<div className="flex justify-between items-center">
-							<label className="font-bold text-gray-200">Thị trưởng xem từ</label>
-							<span className="text-purple-400 font-black text-xl">{settings.mayorWordDuration}s</span>
+							<label className="font-bold text-gray-200">
+								Thị trưởng xem từ
+							</label>
+							<span className="text-purple-400 font-black text-xl">
+								{settings.mayorWordDuration}s
+							</span>
 						</div>
 						<input
 							type="range"
@@ -136,7 +164,12 @@ export default function SettingsPage() {
 							max="30"
 							step="1"
 							value={settings.mayorWordDuration}
-							onChange={(e) => updateSetting("mayorWordDuration", parseInt(e.target.value))}
+							onChange={(e) =>
+								updateSetting(
+									"mayorWordDuration",
+									parseInt(e.target.value)
+								)
+							}
 							className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
 						/>
 					</div>
@@ -144,8 +177,12 @@ export default function SettingsPage() {
 					{/* Narration Duration */}
 					<div className="space-y-3 bg-gray-900/40 p-5 rounded-2xl border border-gray-800">
 						<div className="flex justify-between items-center">
-							<label className="font-bold text-gray-200">Vai trò thức dậy</label>
-							<span className="text-purple-400 font-black text-xl">{settings.narrationDuration}s</span>
+							<label className="font-bold text-gray-200">
+								Vai trò thức dậy
+							</label>
+							<span className="text-purple-400 font-black text-xl">
+								{settings.narrationDuration}s
+							</span>
 						</div>
 						<input
 							type="range"
@@ -153,17 +190,28 @@ export default function SettingsPage() {
 							max="20"
 							step="1"
 							value={settings.narrationDuration}
-							onChange={(e) => updateSetting("narrationDuration", parseInt(e.target.value))}
+							onChange={(e) =>
+								updateSetting(
+									"narrationDuration",
+									parseInt(e.target.value)
+								)
+							}
 							className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
 						/>
-						<p className="text-xs text-gray-500">Thời gian mỗi vai trò thực hiện kỹ năng trong đêm.</p>
+						<p className="text-xs text-gray-500">
+							Thời gian mỗi vai trò thực hiện kỹ năng trong đêm.
+						</p>
 					</div>
 
 					{/* Find Seer Duration */}
 					<div className="space-y-3 bg-gray-900/40 p-5 rounded-2xl border border-gray-800">
 						<div className="flex justify-between items-center">
-							<label className="font-bold text-gray-200">Ma sói tìm Tiên tri</label>
-							<span className="text-purple-400 font-black text-xl">{settings.findSeerDuration}s</span>
+							<label className="font-bold text-gray-200">
+								Ma sói tìm Tiên tri
+							</label>
+							<span className="text-purple-400 font-black text-xl">
+								{settings.findSeerDuration}s
+							</span>
 						</div>
 						<input
 							type="range"
@@ -171,7 +219,12 @@ export default function SettingsPage() {
 							max="60"
 							step="5"
 							value={settings.findSeerDuration}
-							onChange={(e) => updateSetting("findSeerDuration", parseInt(e.target.value))}
+							onChange={(e) =>
+								updateSetting(
+									"findSeerDuration",
+									parseInt(e.target.value)
+								)
+							}
 							className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
 						/>
 					</div>
@@ -179,8 +232,12 @@ export default function SettingsPage() {
 					{/* Find Werewolf Duration */}
 					<div className="space-y-3 bg-gray-900/40 p-5 rounded-2xl border border-gray-800">
 						<div className="flex justify-between items-center">
-							<label className="font-bold text-gray-200">Dân làng tìm Ma sói</label>
-							<span className="text-purple-400 font-black text-xl">{settings.findWerewolfDuration}s</span>
+							<label className="font-bold text-gray-200">
+								Dân làng tìm Ma sói
+							</label>
+							<span className="text-purple-400 font-black text-xl">
+								{settings.findWerewolfDuration}s
+							</span>
 						</div>
 						<input
 							type="range"
@@ -188,7 +245,12 @@ export default function SettingsPage() {
 							max="180"
 							step="10"
 							value={settings.findWerewolfDuration}
-							onChange={(e) => updateSetting("findWerewolfDuration", parseInt(e.target.value))}
+							onChange={(e) =>
+								updateSetting(
+									"findWerewolfDuration",
+									parseInt(e.target.value)
+								)
+							}
 							className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
 						/>
 					</div>
@@ -204,13 +266,21 @@ export default function SettingsPage() {
 								🗑
 							</div>
 							<div>
-								<h3 className="font-black text-white leading-tight">Lịch sử ván chơi</h3>
-								<p className="text-gray-500 text-xs mt-1">Xóa toàn bộ kết quả các ván đã chơi.</p>
+								<h3 className="font-black text-white leading-tight">
+									Lịch sử ván chơi
+								</h3>
+								<p className="text-gray-500 text-xs mt-1">
+									Xóa toàn bộ kết quả các ván đã chơi.
+								</p>
 							</div>
 						</div>
 						<button
 							onClick={() => {
-								if (confirm("Xóa toàn bộ lịch sử? Hành động này không thể hoàn tác.")) {
+								if (
+									confirm(
+										"Xóa toàn bộ lịch sử? Hành động này không thể hoàn tác."
+									)
+								) {
 									dispatch({ type: "CLEAR_HISTORY" });
 								}
 							}}

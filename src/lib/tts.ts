@@ -19,32 +19,6 @@ function buildUtterance(text: string): SpeechSynthesisUtterance {
 	return utter;
 }
 
-function doSpeak(text: string): void {
-	const synth = window.speechSynthesis;
-	synth.cancel();
-
-	// Dynamic import to avoid circular deps — music module is optional
-	let duckFn: (() => void) | null = null;
-	let restoreFn: (() => void) | null = null;
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const m = require("@/lib/music");
-		duckFn = m.duckMusic;
-		restoreFn = m.restoreMusic;
-	} catch {}
-
-	const utter = buildUtterance(text);
-	if (duckFn) duckFn();
-	utter.onend = () => {
-		if (restoreFn) restoreFn();
-	};
-	utter.onerror = () => {
-		if (restoreFn) restoreFn();
-	};
-
-	synth.speak(utter);
-}
-
 export function speak(text: string, onEnd?: () => void): void {
 	if (!enabled || typeof window === "undefined") {
 		if (onEnd) setTimeout(onEnd, 100); // Trigger callback if disabled or no window
@@ -74,7 +48,7 @@ export function speak(text: string, onEnd?: () => void): void {
 			clearTimeout(safetyTimeout);
 			wrapOnEnd();
 		};
-		
+
 		synth.cancel();
 		synth.speak(utter);
 	} else {
@@ -86,7 +60,7 @@ export function speak(text: string, onEnd?: () => void): void {
 			speak(text, onEnd);
 		};
 		synth.addEventListener("voiceschanged", handler);
-		
+
 		// Wait max 500ms for voices, otherwise just try to speak
 		setTimeout(() => {
 			if (handled) return;

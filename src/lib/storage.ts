@@ -1,76 +1,78 @@
-import { WordPack, GameHistory, GameSettings } from '@/types'
-import { DEFAULT_WORD_PACKS } from './defaultData'
+import { WordPack, GameHistory, GameSettings } from "@/types";
+import { DEFAULT_WORD_PACKS } from "./defaultData";
 
 const KEYS = {
-  WORD_PACKS: 'werewords_wordpacks',
-  HISTORY: 'werewords_history',
-  SETTINGS: 'werewords_settings',
-  INITIALIZED: 'werewords_initialized_v3',
-}
+	WORD_PACKS: "werewords_wordpacks",
+	HISTORY: "werewords_history",
+	SETTINGS: "werewords_settings",
+	INITIALIZED: "werewords_initialized_v3",
+};
 
 export function getWordPacks(): WordPack[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(KEYS.WORD_PACKS)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+	if (typeof window === "undefined") return [];
+	try {
+		const raw = localStorage.getItem(KEYS.WORD_PACKS);
+		return raw ? JSON.parse(raw) : [];
+	} catch {
+		return [];
+	}
 }
 
 export function saveWordPacks(packs: WordPack[]): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEYS.WORD_PACKS, JSON.stringify(packs))
+	if (typeof window === "undefined") return;
+	localStorage.setItem(KEYS.WORD_PACKS, JSON.stringify(packs));
 }
 
 export function getHistory(): GameHistory[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(KEYS.HISTORY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+	if (typeof window === "undefined") return [];
+	try {
+		const raw = localStorage.getItem(KEYS.HISTORY);
+		return raw ? JSON.parse(raw) : [];
+	} catch {
+		return [];
+	}
 }
 
 export function saveHistory(history: GameHistory[]): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEYS.HISTORY, JSON.stringify(history))
+	if (typeof window === "undefined") return;
+	localStorage.setItem(KEYS.HISTORY, JSON.stringify(history));
 }
 
-const DEFAULT_SETTINGS: GameSettings = {
-  selectedPackIds: ['pack-food'],
-  timerDuration: 180,
-  initialNightDuration: 5,
-  mayorRoleDuration: 5,
-  mayorWordDuration: 10,
-  narrationDuration: 8,
-  findSeerDuration: 15,
-  findWerewolfDuration: 60,
-  filterDifficulty: 'all',
-  selectedRoleIds: ['role-seer', 'role-werewolf', 'role-villager'],
-}
+export const DEFAULT_SETTINGS: GameSettings = {
+	selectedPackIds: ["pack-food"],
+	timerDuration: 180,
+	initialNightDuration: 5,
+	mayorRoleDuration: 5,
+	mayorWordDuration: 10,
+	narrationDuration: 8,
+	findSeerDuration: 15,
+	findWerewolfDuration: 60,
+	filterDifficulty: "all",
+	selectedRoleIds: ["role-seer", "role-werewolf", "role-villager"],
+};
 
 export function getSettings(): GameSettings {
-  if (typeof window === 'undefined') return DEFAULT_SETTINGS
-  try {
-    const raw = localStorage.getItem(KEYS.SETTINGS)
-    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS
-  } catch {
-    return DEFAULT_SETTINGS
-  }
+	if (typeof window === "undefined") return DEFAULT_SETTINGS;
+	try {
+		const raw = localStorage.getItem(KEYS.SETTINGS);
+		return raw
+			? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+			: DEFAULT_SETTINGS;
+	} catch {
+		return DEFAULT_SETTINGS;
+	}
 }
 
 export function saveSettings(settings: GameSettings): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings))
+	if (typeof window === "undefined") return;
+	localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
 }
 
 export function initializeDefaultData(): void {
-  if (typeof window === 'undefined') return
-  const initialized = localStorage.getItem(KEYS.INITIALIZED)
-  if (!initialized) {
-    saveWordPacks(DEFAULT_WORD_PACKS)
-    localStorage.setItem(KEYS.INITIALIZED, 'true')
-  }
+	if (typeof window === "undefined") return;
+	const initialized = localStorage.getItem(KEYS.INITIALIZED);
+	if (!initialized) {
+		saveWordPacks(DEFAULT_WORD_PACKS);
+		localStorage.setItem(KEYS.INITIALIZED, "true");
+	}
 }
