@@ -72,7 +72,6 @@ export default function PlayPage() {
 	const lastSpokenRef = useRef<number>(-1);
 	const halfTimeReportedRef = useRef(false);
 	const oneMinuteReportedRef = useRef(false);
-	const [paused, setPaused] = useState(false);
 	const [flash, setFlash] = useState(false);
 	const [ttsOn, setTtsOn] = useState(true);
 	const [result, setResult] = useState<"villagers" | "werewolf" | null>(null);
@@ -105,7 +104,6 @@ export default function PlayPage() {
 			setWordVisible(false);
 			setNarrationIndex(-1);
 			setNarrationPhase("waking");
-			setPaused(false);
 			setEndgameTimeLeft(0);
 			setEndgameType(null);
 			setEndgameNarrating(false);
@@ -416,14 +414,6 @@ export default function PlayPage() {
 	useEffect(() => {
 		if (step !== "timer" || !currentGame) return;
 
-		if (paused) {
-			if (intervalRef.current) {
-				clearInterval(intervalRef.current);
-				intervalRef.current = null;
-			}
-			return;
-		}
-
 		// Reset notification refs when timer starts or resets
 		halfTimeReportedRef.current = false;
 		oneMinuteReportedRef.current = false;
@@ -488,7 +478,7 @@ export default function PlayPage() {
 		return () => {
 			if (intervalRef.current) clearInterval(intervalRef.current);
 		};
-	}, [step, paused, currentGame]);
+	}, [step, currentGame]);
 
 	// Endgame Timer Logic
 	useEffect(() => {
@@ -786,8 +776,6 @@ export default function PlayPage() {
 				<TimerPhase
 					timeLeft={timeLeft}
 					isWarning={isWarning}
-					paused={paused}
-					onTogglePause={() => setPaused((p) => !p)}
 					onWordGuessed={handleWordGuessed}
 				/>
 			)}

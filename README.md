@@ -1,4 +1,4 @@
-# 🐺💬 Werewords Việt Nam (Companion App)
+# 🐺💬 Werewords Việt Nam
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
@@ -6,11 +6,14 @@
 
 Ứng dụng hỗ trợ chơi board game **Werewords** phiên bản Việt hóa. Tối ưu hóa trải nghiệm chơi với dẫn dắt giọng nói tự động và quản lý từ khóa thông minh.
 
+🌐 **Website**: [https://werewords.up.railway.app/](https://werewords.up.railway.app/)
+
 ---
 
 ## 🚀 Tính năng nổi bật
 
 * **🎙️ Dẫn dắt thông minh**: Tự động hóa hoàn toàn giai đoạn Ban đêm. Hệ thống TTS (Text-to-Speech) đồng bộ với bộ đếm giờ.
+* **👥 Chế độ Chơi Nhóm (Pass & Play)**: Hỗ trợ từ 4-8 người chơi cùng lúc trên một thiết bị. Tự động chia vai trò (Thị trưởng, Ma sói, Tiên tri...) và quản lý người chơi linh hoạt.
 * **📱 Giao diện 4 hướng (4-Way UI)**: Hiển thị từ khóa ở các cạnh màn hình, hỗ trợ người chơi xung quanh bàn. Tự động thu nhỏ chữ cho từ dài.
 * **🎭 Cơ chế Thị trưởng mới**: Cho phép Thị trưởng chọn 1 trong 2 từ khóa ngẫu nhiên để bắt đầu ván chơi.
 * **⚙️ Tùy chỉnh chuyên sâu**: Thiết lập linh hoạt thời gian cho từng vai trò và giai đoạn.

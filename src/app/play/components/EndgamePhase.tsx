@@ -7,11 +7,11 @@ import TimerDisplay from "@/components/TimerDisplay";
 interface EndgamePhaseProps {
 	type: "find-seer" | "find-werewolf";
 	timeLeft: number;
-	players: Player[];
-	playerTokens: Record<string, TokenType[]>;
+	players?: Player[];
+	playerTokens?: Record<string, TokenType[]>;
 }
 
-export default function EndgamePhase({ type, timeLeft, players, playerTokens }: EndgamePhaseProps) {
+export default function EndgamePhase({ type, timeLeft, players = [], playerTokens = {} }: EndgamePhaseProps) {
 	const isWarning = timeLeft <= 5 && timeLeft > 0;
 	
 	const title = type === "find-seer" 
@@ -46,38 +46,40 @@ export default function EndgamePhase({ type, timeLeft, players, playerTokens }: 
 			</div>
 
 			{/* Player Tokens Grid */}
-			<div className="flex-1 w-full overflow-hidden flex flex-col mt-2">
-				<div className="flex-1 overflow-y-auto no-scrollbar py-1">
-					<div className="grid grid-cols-2 gap-2">
-						{players.map(player => (
-							<div key={player.id} className="flex flex-col bg-white/5 rounded-xl p-2.5 border border-white/5 text-left gap-1.5 h-full">
-								<div className="flex items-center gap-1.5 overflow-hidden">
-									<span className={`font-black text-xs truncate ${player.role === 'mayor' ? 'text-amber-400' : 'text-gray-200'}`}>
-										{player.name}
-									</span>
-									{player.role === 'mayor' && (
-										<span className="shrink-0 text-[7px] bg-amber-900/40 text-amber-500 px-1 rounded uppercase font-black tracking-tighter border border-amber-900/50">
-											Thị trưởng
+			{players && players.length > 0 && (
+				<div className="flex-1 w-full overflow-hidden flex flex-col mt-2">
+					<div className="flex-1 overflow-y-auto no-scrollbar py-1">
+						<div className="grid grid-cols-2 gap-2">
+							{players.map(player => (
+								<div key={player.id} className="flex flex-col bg-white/5 rounded-xl p-2.5 border border-white/5 text-left gap-1.5 h-full">
+									<div className="flex items-center gap-1.5 overflow-hidden">
+										<span className={`font-black text-xs truncate ${player.role === 'mayor' ? 'text-amber-400' : 'text-gray-200'}`}>
+											{player.name}
 										</span>
-									)}
-								</div>
-								
-								<div className="flex flex-wrap gap-0.5 min-h-[22px] items-center">
-									{playerTokens[player.id]?.length > 0 ? (
-										playerTokens[player.id].map((t, idx) => (
-											<span key={idx} className="text-base" title={TOKEN_DETAILS[t].label}>
-												{TOKEN_DETAILS[t].emoji}
+										{player.role === 'mayor' && (
+											<span className="shrink-0 text-[7px] bg-amber-900/40 text-amber-500 px-1 rounded uppercase font-black tracking-tighter border border-amber-900/50">
+												Thị trưởng
 											</span>
-										))
-									) : (
-										<span className="text-[9px] text-gray-700 italic font-medium uppercase tracking-tighter">no tokens</span>
-									)}
+										)}
+									</div>
+									
+									<div className="flex flex-wrap gap-0.5 min-h-[22px] items-center">
+										{playerTokens[player.id]?.length > 0 ? (
+											playerTokens[player.id].map((t, idx) => (
+												<span key={idx} className="text-base" title={TOKEN_DETAILS[t].label}>
+													{TOKEN_DETAILS[t].emoji}
+												</span>
+											))
+										) : (
+											<span className="text-[9px] text-gray-700 italic font-medium uppercase tracking-tighter">no tokens</span>
+										)}
+									</div>
 								</div>
-							</div>
-						))}
+							))}
+						</div>
 					</div>
 				</div>
-			</div>
+			)}
 
 			{isWarning && (
 				<p className="shrink-0 text-red-500 font-black text-xs animate-bounce uppercase tracking-widest bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20">
