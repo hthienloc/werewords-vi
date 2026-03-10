@@ -7,6 +7,7 @@ const KEYS = {
 	SETTINGS: "werewords_settings",
 	INITIALIZED: "werewords_initialized_v3",
 	SAVED_PLAYERS: "werewords_saved_players",
+	PLAYER_PRESETS: "werewords_player_presets",
 };
 
 export function getWordPacks(): WordPack[] {
@@ -137,4 +138,26 @@ export function addSavedPlayer(name: string): void {
 	// Keep only top 20 most recent
 	const sorted = players.sort((a, b) => b.lastUsed - a.lastUsed).slice(0, 20);
 	saveSavedPlayers(sorted);
+}
+
+export function deleteSavedPlayer(id: string): void {
+	if (typeof window === "undefined") return;
+	const players = getSavedPlayers();
+	const filtered = players.filter(p => p.id !== id);
+	saveSavedPlayers(filtered);
+}
+
+export function getGroupPresets(): import("@/types").GroupPreset[] {
+	if (typeof window === "undefined") return [];
+	try {
+		const raw = localStorage.getItem(KEYS.PLAYER_PRESETS);
+		return raw ? JSON.parse(raw) : [];
+	} catch {
+		return [];
+	}
+}
+
+export function saveGroupPresets(presets: import("@/types").GroupPreset[]): void {
+	if (typeof window === "undefined") return;
+	localStorage.setItem(KEYS.PLAYER_PRESETS, JSON.stringify(presets));
 }

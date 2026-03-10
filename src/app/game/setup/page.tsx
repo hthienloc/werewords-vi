@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
 import { initAudio } from "@/lib/audio";
-import { saveGroupSession, getSavedPlayers, addSavedPlayer } from "@/lib/storage";
+import { saveGroupSession, getSavedPlayers, addSavedPlayer, deleteSavedPlayer, getGroupPresets, saveGroupPresets } from "@/lib/storage";
 import { assignRoles } from "@/lib/groupGame";
-import { SavedPlayer } from "@/types";
+import { SavedPlayer, GroupPreset } from "@/types";
 
 // dnd-kit imports
 import {
@@ -30,9 +30,9 @@ import { CSS } from "@dnd-kit/utilities";
 
 // Sortable Item Component
 function SortablePlayerInput({ 
-  id, index, name, onChange, onClear 
+  id, index, name, onChange, onClear, onDelete, canDelete
 }: { 
-  id: string, index: number, name: string, onChange: (val: string) => void, onClear: () => void 
+  id: string, index: number, name: string, onChange: (val: string) => void, onClear: () => void, onDelete: () => void, canDelete: boolean
 }) {
   const {
     attributes,
@@ -87,6 +87,19 @@ function SortablePlayerInput({
           </button>
         )}
       </div>
+
+      {canDelete && (
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); onDelete(); }}
+          className="pr-4 text-red-900/40 hover:text-red-500 transition-colors"
+          title="Xoá người chơi này"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -119,6 +132,9 @@ export default function GroupSetupPage() {
   const [tokenLimit, setTokenLimit] = useState<"infinite" | "many" | "few">("infinite");
   const [error, setError] = useState("");
   const [savedPlayers, setSavedPlayers] = useState<SavedPlayer[]>([]);
+  const [presets, setPresets] = useState<GroupPreset[]>([]);
+  const [showSavePreset, setShowSavePreset] = useState(false);
+  const [presetName, setPresetName] = useState("");
 
   // Configure sensors for dnd-kit to work on mobile + desktop
   const sensors = useSensors(
@@ -134,17 +150,22 @@ export default function GroupSetupPage() {
 
   useEffect(() => {
     setSavedPlayers(getSavedPlayers());
-    setPlayers([
+    setPresets(getGroupPresets());
+    const initialPlayers = [
       { id: '1', name: '' },
       { id: '2', name: '' },
       { id: '3', name: '' },
       { id: '4', name: '' },
-    ]);
+    ];
+    setPlayers(initialPlayers);
+    setPlayerCount(4);
   }, []);
 
-  // Sync player names array length with playerCount
+  // Only sync if playerCount changes via picker, but now we use add/remove buttons too
   useEffect(() => {
     if (players.length === 0) return;
+    if (players.length === playerCount) return;
+    
     setPlayers(prev => {
       const next = [...prev];
       if (next.length < playerCount) {
@@ -246,6 +267,63 @@ export default function GroupSetupPage() {
     }
   }
 
+  function handleRemovePlayer(id: string) {
+    if (players.length <= 4) return;
+    const next = players.filter(p => p.id !== id);
+    setPlayers(next);
+    setPlayerCount(next.length);
+  }
+
+  function handleAddPlayer() {
+    if (players.length >= 8) return;
+    const nextCount = players.length + 1;
+    setPlayerCount(nextCount);
+  }
+
+  function handleSavePreset() {
+    if (!presetName.trim()) {
+      setError("Vui lòng nhập tên hội.");
+      return;
+    }
+    const newPreset: GroupPreset = {
+      id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+      name: presetName.trim(),
+      playerNames: players.filter(p => p.name.trim()).map(p => p.name.trim())
+    };
+    if (newPreset.playerNames.length < 4) {
+      setError("Một nhóm cần ít nhất 4 người có tên.");
+      return;
+    }
+    setPresets(prev => {
+      const next = [...prev, newPreset];
+      saveGroupPresets(next);
+      return next;
+    });
+    setPresetName("");
+    setShowSavePreset(false);
+    setError("");
+  }
+
+  function handleLoadPreset(preset: GroupPreset) {
+    const nextPlayers = preset.playerNames.map(name => ({
+      id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+      name
+    }));
+    setPlayers(nextPlayers);
+    setPlayerCount(nextPlayers.length);
+  }
+
+  function handleDeletePreset(id: string) {
+    const next = presets.filter(p => p.id !== id);
+    setPresets(next);
+    saveGroupPresets(next);
+  }
+
+  function handleDeleteSavedPlayer(id: string) {
+    deleteSavedPlayer(id);
+    setSavedPlayers(getSavedPlayers());
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (over && active.id !== over.id) {
@@ -269,26 +347,54 @@ export default function GroupSetupPage() {
         {step === 1 ? (
           <>
             <div className="space-y-4">
-              <label className="block text-sm font-semibold text-gray-400">Số lượng người chơi</label>
-              <div className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-2xl p-2">
-                <button 
-                  onClick={() => setPlayerCount(Math.max(4, playerCount - 1))}
-                  className="w-12 h-12 flex items-center justify-center bg-gray-800 rounded-xl active:scale-95 transition-transform hover:bg-gray-700"
-                >
-                  <span className="text-2xl font-bold">−</span>
-                </button>
-                <div className="flex flex-col items-center">
-                  <span className="text-3xl font-black text-indigo-400">{playerCount}</span>
-                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Người</span>
-                </div>
-                <button 
-                  onClick={() => setPlayerCount(Math.min(8, playerCount + 1))}
-                  className="w-12 h-12 flex items-center justify-center bg-gray-800 rounded-xl active:scale-95 transition-transform hover:bg-gray-700"
-                >
-                  <span className="text-2xl font-bold">+</span>
-                </button>
+              <div className="flex justify-between items-end">
+                <label className="block text-sm font-semibold text-gray-400">Số lượng người chơi</label>
+                <span className="text-indigo-400 font-black text-2xl">{playerCount}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {[4, 5, 6, 7, 8].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setPlayerCount(n)}
+                    className={`flex-1 py-3 rounded-xl border font-black text-sm transition-all ${
+                      playerCount === n 
+                        ? "bg-indigo-900/40 border-indigo-500 text-indigo-400" 
+                        : "bg-gray-900 border-gray-800 text-gray-600 hover:bg-gray-800"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
               </div>
             </div>
+
+            {presets.length > 0 && (
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-400">Hội chơi đã lưu</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {presets.map(p => (
+                    <div 
+                      key={p.id}
+                      className="group relative flex items-center bg-indigo-900/20 border border-indigo-900/40 rounded-xl p-3 hover:bg-indigo-900/30 transition-all cursor-pointer"
+                      onClick={() => handleLoadPreset(p)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-indigo-300 truncate">{p.name}</div>
+                        <div className="text-[10px] text-indigo-500 font-medium">{p.playerNames.length} người</div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeletePreset(p.id); }}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:text-red-500 transition-all"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-400">Tên người chơi</label>
@@ -299,18 +405,27 @@ export default function GroupSetupPage() {
                   {savedPlayers.slice(0, 8).map(p => {
                     const isAlreadySelected = players.some(n => n.name.trim().toLowerCase() === p.name.toLowerCase());
                     return (
-                      <button
-                        key={p.id}
-                        onClick={() => handleSelectSavedPlayer(p.name)}
-                        disabled={isAlreadySelected}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          isAlreadySelected 
-                            ? "bg-gray-900 text-gray-700 opacity-50 cursor-not-allowed border border-transparent" 
-                            : "bg-indigo-900/30 text-indigo-300 border border-indigo-900/50 hover:bg-indigo-900/50 active:scale-95"
-                        }`}
-                      >
-                        + {p.name}
-                      </button>
+                      <div key={p.id} className="relative group/tag">
+                        <button
+                          onClick={() => handleSelectSavedPlayer(p.name)}
+                          disabled={isAlreadySelected}
+                          className={`pl-3 pr-8 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            isAlreadySelected 
+                              ? "bg-gray-900 text-gray-700 opacity-50 cursor-not-allowed border border-transparent" 
+                              : "bg-indigo-900/30 text-indigo-300 border border-indigo-900/50 hover:bg-indigo-900/50 active:scale-95 text-left"
+                          }`}
+                        >
+                          + {p.name}
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDeleteSavedPlayer(p.id); }}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-700 hover:text-red-500 opacity-0 group-hover/tag:opacity-100 transition-all"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -332,6 +447,8 @@ export default function GroupSetupPage() {
                         id={item.id}
                         index={i}
                         name={item.name}
+                        canDelete={players.length > 4}
+                        onDelete={() => handleRemovePlayer(item.id)}
                         onChange={(val) => {
                           const next = [...players];
                           next[i] = { ...next[i], name: val };
@@ -348,6 +465,54 @@ export default function GroupSetupPage() {
                   </div>
                 </SortableContext>
               </DndContext>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddPlayer}
+                  disabled={players.length >= 8}
+                  className={`flex-1 py-4 rounded-xl border-2 border-dashed font-bold text-xs transition-all ${
+                    players.length < 8 
+                      ? "border-gray-800 text-gray-500 hover:border-gray-700 hover:text-gray-300" 
+                      : "border-transparent text-transparent pointer-events-none"
+                  }`}
+                >
+                  + Thêm người chơi ({players.length}/8)
+                </button>
+                
+                <button
+                  onClick={() => setShowSavePreset(true)}
+                  className="px-4 py-4 rounded-xl bg-indigo-900/20 text-indigo-400 border border-indigo-900/40 hover:bg-indigo-900/30 transition-all font-bold text-xs"
+                >
+                  💾 Lưu hội này
+                </button>
+              </div>
+
+              {showSavePreset && (
+                <div className="p-4 bg-indigo-950/30 border border-indigo-500/30 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2">
+                  <p className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Tên hội chơi mới</p>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="VD: Gia đình, Team công ty..." 
+                      value={presetName}
+                      onChange={e => setPresetName(e.target.value)}
+                      className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 uppercase font-bold"
+                    />
+                    <button 
+                      onClick={handleSavePreset}
+                      className="bg-indigo-600 hover:bg-indigo-500 px-4 rounded-xl font-bold text-sm transition-all"
+                    >
+                      Lưu
+                    </button>
+                    <button 
+                      onClick={() => setShowSavePreset(false)}
+                      className="text-gray-500 hover:text-white px-2"
+                    >
+                      Bỏ
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {error && <div className="p-4 bg-red-950/50 border border-red-900 text-red-400 text-xs rounded-xl animate-in fade-in slide-in-from-top-1">{error}</div>}

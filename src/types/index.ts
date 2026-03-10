@@ -87,3 +87,9 @@ export interface SavedPlayer {
   name: string;
   lastUsed: number;
 }
+
+export interface GroupPreset {
+  id: string;
+  name: string;
+  playerNames: string[];
+}
