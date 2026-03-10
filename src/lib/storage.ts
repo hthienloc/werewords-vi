@@ -6,6 +6,7 @@ const KEYS = {
 	HISTORY: "werewords_history",
 	SETTINGS: "werewords_settings",
 	INITIALIZED: "werewords_initialized_v3",
+	SAVED_PLAYERS: "werewords_saved_players",
 };
 
 export function getWordPacks(): WordPack[] {
@@ -75,4 +76,65 @@ export function initializeDefaultData(): void {
 		saveWordPacks(DEFAULT_WORD_PACKS);
 		localStorage.setItem(KEYS.INITIALIZED, "true");
 	}
+}
+
+const SESSION_KEYS = {
+	GROUP_SESSION: "werewords_group_session",
+};
+
+export function getGroupSession(): import("@/types").GroupGameSession | null {
+	if (typeof window === "undefined") return null;
+	try {
+		const raw = sessionStorage.getItem(SESSION_KEYS.GROUP_SESSION);
+		return raw ? JSON.parse(raw) : null;
+	} catch {
+		return null;
+	}
+}
+
+export function saveGroupSession(session: import("@/types").GroupGameSession): void {
+	if (typeof window === "undefined") return;
+	sessionStorage.setItem(SESSION_KEYS.GROUP_SESSION, JSON.stringify(session));
+}
+
+export function clearGroupSession(): void {
+	if (typeof window === "undefined") return;
+	sessionStorage.removeItem(SESSION_KEYS.GROUP_SESSION);
+}
+
+export function getSavedPlayers(): import("@/types").SavedPlayer[] {
+	if (typeof window === "undefined") return [];
+	try {
+		const raw = localStorage.getItem(KEYS.SAVED_PLAYERS);
+		return raw ? JSON.parse(raw) : [];
+	} catch {
+		return [];
+	}
+}
+
+export function saveSavedPlayers(players: import("@/types").SavedPlayer[]): void {
+	if (typeof window === "undefined") return;
+	localStorage.setItem(KEYS.SAVED_PLAYERS, JSON.stringify(players));
+}
+
+export function addSavedPlayer(name: string): void {
+	if (typeof window === "undefined" || !name.trim()) return;
+	const players = getSavedPlayers();
+	const trimmedName = name.trim();
+	const existingIndex = players.findIndex(p => p.name.toLowerCase() === trimmedName.toLowerCase());
+	
+	if (existingIndex > -1) {
+		players[existingIndex].lastUsed = Date.now();
+		players[existingIndex].name = trimmedName; // Update casing if needed
+	} else {
+		players.push({
+			id: (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `sp-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+			name: trimmedName,
+			lastUsed: Date.now()
+		});
+	}
+	
+	// Keep only top 20 most recent
+	const sorted = players.sort((a, b) => b.lastUsed - a.lastUsed).slice(0, 20);
+	saveSavedPlayers(sorted);
 }

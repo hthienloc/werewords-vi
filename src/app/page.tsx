@@ -24,38 +24,48 @@ export default function HomePage() {
 			{/* Main actions */}
 			<div className="w-full max-w-sm flex flex-col gap-4">
 				<Link
-					href="/setup"
-					className="w-full bg-purple-700 hover:bg-purple-600 active:bg-purple-800 text-white text-xl font-bold py-5 rounded-2xl text-center transition-colors shadow-lg shadow-purple-900/40"
+					href="/game/setup"
+					className="w-full bg-indigo-700 hover:bg-indigo-600 active:bg-indigo-800 text-white text-xl font-extrabold py-6 rounded-2xl text-center transition-all shadow-xl shadow-indigo-900/40 scale-105 mb-2"
 				>
-					🎮 Bắt đầu ván mới
+					👥 Chơi theo nhóm
+					<div className="text-[10px] uppercase tracking-widest font-bold opacity-70 mt-1">Pass & Play hoàn chỉnh</div>
+				</Link>
+
+				<Link
+					href="/setup"
+					className="w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white text-lg font-semibold py-4 rounded-2xl text-center transition-colors border border-gray-700"
+				>
+					🃏 Dùng kèm bộ bài giấy
+					<div className="text-[10px] uppercase tracking-widest font-medium opacity-50 mt-1">Chế độ trợ lý (Solo)</div>
 				</Link>
 
 				<Link
 					href="/words"
-					className="w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white text-lg font-semibold py-4 rounded-2xl text-center transition-colors border border-gray-700"
+					className="w-full bg-gray-800/40 hover:bg-gray-800 active:bg-gray-900 text-white/70 text-sm font-medium py-3 rounded-xl text-center transition-colors border border-white/5"
 				>
 					📚 Quản lý bộ từ
 				</Link>
 
-				<Link
-					href="/history"
-					className="w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white text-lg font-semibold py-4 rounded-2xl text-center transition-colors border border-gray-700"
-				>
-					📜 Lịch sử ván chơi
-				</Link>
+				<div className="grid grid-cols-2 gap-3 mb-3">
+					<Link
+						href="/history"
+						className="bg-gray-800/40 hover:bg-gray-800 text-white/70 text-xs font-medium py-3 rounded-xl text-center border border-white/5"
+					>
+						📜 Lịch sử
+					</Link>
+					<Link
+						href="/settings"
+						className="bg-gray-800/40 hover:bg-gray-800 text-white/70 text-xs font-medium py-3 rounded-xl text-center border border-white/5"
+					>
+						⚙️ Cài đặt
+					</Link>
+				</div>
 
 				<Link
 					href="/rules"
-					className="w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white text-lg font-semibold py-4 rounded-2xl text-center transition-colors border border-gray-700"
+					className="w-full bg-indigo-900/20 hover:bg-indigo-900/30 text-indigo-300 text-sm font-bold py-3 rounded-xl text-center transition-colors border border-indigo-500/20"
 				>
-					📖 Luật chơi
-				</Link>
-
-				<Link
-					href="/settings"
-					className="w-full bg-gray-800 hover:bg-gray-700 active:bg-gray-900 text-white text-lg font-semibold py-4 rounded-2xl text-center transition-colors border border-gray-700"
-				>
-					⚙️ Cài đặt
+					📜 Xem luật chơi
 				</Link>
 			</div>
 			

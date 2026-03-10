@@ -5,14 +5,14 @@ interface DifficultyBadgeProps {
 
 const labels = {
   easy: 'Dễ',
-  medium: 'Trung bình',
+  medium: 'Vừa',
   hard: 'Khó',
 }
 
 const colors = {
-  easy: 'bg-green-900 text-green-300 border border-green-700',
-  medium: 'bg-yellow-900 text-yellow-300 border border-yellow-700',
-  hard: 'bg-red-900 text-red-300 border border-red-700',
+  easy: 'bg-green-900/40 text-green-400 border border-green-800',
+  medium: 'bg-yellow-900/40 text-yellow-400 border border-yellow-800',
+  hard: 'bg-red-900/40 text-red-400 border border-red-800',
 }
 
 export default function DifficultyBadge({
