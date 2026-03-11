@@ -2,7 +2,6 @@
 
 import { Player } from "@/types";
 import { TOKEN_DETAILS, TokenType } from "@/lib/groupGame";
-import TimerDisplay from "@/components/TimerDisplay";
 
 interface EndgamePhaseProps {
 	type: "find-seer" | "find-werewolf";
@@ -25,25 +24,27 @@ export default function EndgamePhase({ type, timeLeft, players = [], playerToken
 	return (
 		<div className={`flex-1 flex flex-col items-center justify-start py-4 px-3 text-center gap-4 transition-colors duration-300 overflow-hidden ${isWarning ? "bg-red-950/20" : ""}`}>
 			
-			{/* Compact Vertical Header */}
-			<div className="shrink-0 w-full flex flex-col items-center gap-1">
-				<div className="flex flex-row items-center justify-center gap-3 w-full">
-					<div className="flex flex-col items-start">
-						<h2 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] italic leading-none">
-							Hạ màn
-						</h2>
-						<h3 className="text-xl font-black text-purple-400 uppercase tracking-tighter leading-tight mt-0.5">
-							{title}
-						</h3>
-					</div>
-					<div className="scale-50 origin-center -my-4">
-						<TimerDisplay seconds={timeLeft} warning={isWarning} />
-					</div>
+			{/* Compact Horizontal Header Bar */}
+			<div className={`shrink-0 w-full flex flex-row items-center justify-between px-4 py-2.5 rounded-2xl transition-all duration-300 border border-white/5 ${
+				isWarning ? "bg-red-950/40 border-red-500/30" : "bg-gray-900/40"
+			}`}>
+				<div className="flex flex-col items-start">
+					<h2 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] italic leading-none">
+						Hạ màn
+					</h2>
+					<h3 className="text-xl font-black text-purple-400 uppercase tracking-tighter leading-tight mt-0.5">
+						{title}
+					</h3>
 				</div>
-				<p className="text-gray-500 text-[10px] font-medium max-w-[200px]">
-					{instruction}
-				</p>
+				
+				<div className={`text-3xl font-black tabular-nums tracking-tighter ${isWarning ? 'text-red-400 animate-pulse' : 'text-indigo-400'}`}>
+					{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+				</div>
 			</div>
+
+			<p className="shrink-0 text-gray-500 text-[10px] font-medium max-w-[240px] uppercase tracking-wider">
+				{instruction}
+			</p>
 
 			{/* Player Tokens Grid */}
 			{players && players.length > 0 && (

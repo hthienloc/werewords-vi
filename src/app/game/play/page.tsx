@@ -604,12 +604,13 @@ export default function GroupPlayPage() {
                               <span className="text-[10px] text-gray-500 uppercase font-black">{details.name}</span>
                             </div>
                          </div>
-                         {displayRole === 'werewolf' && (
-                           <span className="bg-red-500/20 text-red-400 text-[10px] font-black px-2 py-1 rounded-md uppercase border border-red-500/20">Sói</span>
-                         )}
-                         {displayRole === 'seer' && (
-                           <span className="bg-violet-500/20 text-violet-400 text-[10px] font-black px-2 py-1 rounded-md uppercase border border-violet-500/20">Tiên tri</span>
-                         )}
+                         <div className="flex flex-wrap gap-0.5 max-w-[100px] justify-end">
+                           {playerTokens[p.id]?.map((t, idx) => (
+                             <span key={idx} className="text-base" title={TOKEN_DETAILS[t].label}>
+                               {TOKEN_DETAILS[t].emoji}
+                             </span>
+                           ))}
+                         </div>
                        </div>
                      );
                    })}
